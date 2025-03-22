@@ -1,33 +1,25 @@
-// Función para enviar la alarma al bot de Telegram
-function enviarAlarma(conGeolocalizacion) {
-    // Determinar qué mensaje se va a enviar
-    let mensaje = conGeolocalizacion 
-        ? document.getElementById("mensajeRojo").value 
-        : document.getElementById("mensajeAzul").value;
+// 🔴 Reemplaza con tu TOKEN del bot de Telegram (creado en BotFather)
+const BOT_TOKEN = "8162603662:AAFkClrLG6I9whBVAFLDPn17KCp8l8kNN0o"; 
 
-    if (mensaje.trim() === "") {
-        alert("Por favor, escribe un mensaje antes de enviar.");
-        return;
-    }
+// 🔵 Reemplaza con el ID de tu grupo o chat en Telegram
+const CHAT_ID = "-1002210223048"; 
 
-    // Crear el objeto de datos que se enviará al bot de Telegram
-    let data = { 
-        mensaje: mensaje, 
-        geolocalizacion: conGeolocalizacion 
-    };
-
-    // Enviar los datos al bot usando fetch
-    fetch("http://localhost:5000/enviarAlarma", {  // URL local del bot
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(data)
-    })
-    .then(response => response.json())
-    .then(data => {
-        alert("Alarma enviada correctamente.");
-    })
-    .catch(error => {
-        alert("Error al enviar la alarma.");
-        console.error("Error:", error);
-    });
+// ✅ Función para enviar mensajes a Telegram
+function enviarMensaje(mensaje) {
+    const url = `https://api.telegram.org/bot${BOT_TOKEN}/sendMessage?chat_id=${CHAT_ID}&text=${encodeURIComponent(mensaje)}`;
+    
+    fetch(url)
+        .then(response => response.json())
+        .then(data => console.log("Mensaje enviado:", data))
+        .catch(error => console.error("Error al enviar mensaje:", error));
 }
+
+// 🎯 Evento para el botón rojo (Alerta máxima)
+document.getElementById("botonRojo").addEventListener("click", function() {
+    enviarMensaje("🚨 *ALERTA MÁXIMA* 🚨\nSe ha presionado el Botón Rojo.");
+});
+
+// 🎯 Evento para el botón azul (Aviso informativo)
+document.getElementById("botonAzul").addEventListener("click", function() {
+    enviarMensaje("🔵 *Aviso Informativo* 🔵\nSe ha presionado el Botón Azul.");
+});
