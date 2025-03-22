@@ -4,25 +4,17 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Alarma Telegram</title>
-    <link rel="stylesheet" href="styles.css">  <!-- Archivo CSS -->
+    <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-    <div class="container">
-        <h1>Enviar Alarma</h1>
 
-        <!-- Botón Rojo con Casillero -->
-        <div class="alert-box">
-            <textarea id="mensajeRojo" placeholder="Describe la emergencia..."></textarea>
-            <button class="btn rojo" onclick="enviarAlarma(true)">🚨 Enviar con Geolocalización</button>
-        </div>
+    <h1>⚠️ Sistema de Alarma Telegram</h1>
+    <p>Presiona un botón para enviar una alerta a Telegram.</p>
 
-        <!-- Botón Azul con Casillero -->
-        <div class="alert-box">
-            <textarea id="mensajeAzul" placeholder="Describe la emergencia..."></textarea>
-            <button class="btn azul" onclick="enviarAlarma(false)">🔵 Enviar sin Geolocalización</button>
-        </div>
-    </div>
+    <!-- Botones de alarma -->
+    <button id="botonRojo">🚨 Botón Rojo - Alerta Máxima</button>
+    <button id="botonAzul">🔵 Botón Azul - Aviso Informativo</button>
 
-    <script src="script.js"></script>  <!-- Archivo JavaScript -->
+    <script src="script.js"></script> <!-- Archivo JavaScript -->
 </body>
 </html>
