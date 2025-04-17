@@ -1,25 +1,41 @@
-// 🔴 Reemplaza con tu TOKEN del bot de Telegram (creado en BotFather)
-const BOT_TOKEN = "8162603662:AAFkClrLG6I9whBVAFLDPn17KCp8l8kNN0o"; 
+function enviarAlarma(conGeolocalizacion) {
+    let mensaje = conGeolocalizacion 
+        ? document.getElementById("mensajeRojo").value 
+        : document.getElementById("mensajeAzul").value;
 
-// 🔵 Reemplaza con el ID de tu grupo o chat en Telegram
-const CHAT_ID = "-1002210223048"; 
+    if (mensaje.trim() === "") {
+        alert("Por favor, escribe un mensaje.");
+        return;
+    }
 
-// ✅ Función para enviar mensajes a Telegram
-function enviarMensaje(mensaje) {
-    const url = `https://api.telegram.org/bot${BOT_TOKEN}/sendMessage?chat_id=${CHAT_ID}&text=${encodeURIComponent(mensaje)}`;
-    
-    fetch(url)
-        .then(response => response.json())
-        .then(data => console.log("Mensaje enviado:", data))
-        .catch(error => console.error("Error al enviar mensaje:", error));
+    // Si incluye geolocalización, obtenerla
+    if (conGeolocalizacion && navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(function(position) {
+            mensaje += `\n📍 Ubicación: https://www.google.com/maps?q=${position.coords.latitude},${position.coords.longitude}`;
+            enviarMensajeAlServidor(mensaje, conGeolocalizacion);
+        }, function(error) {
+            alert("No se pudo obtener la ubicación.");
+            enviarMensajeAlServidor(mensaje, conGeolocalizacion);
+        });
+    } else {
+        enviarMensajeAlServidor(mensaje, conGeolocalizacion);
+    }
 }
 
-// 🎯 Evento para el botón rojo (Alerta máxima)
-document.getElementById("botonRojo").addEventListener("click", function() {
-    enviarMensaje("🚨 *ALERTA MÁXIMA* 🚨\nSe ha presionado el Botón Rojo.");
-});
+function enviarMensajeAlServidor(mensaje, geolocalizacion) {
+    let data = { mensaje, geolocalizacion };
 
-// 🎯 Evento para el botón azul (Aviso informativo)
-document.getElementById("botonAzul").addEventListener("click", function() {
-    enviarMensaje("🔵 *Aviso Informativo* 🔵\nSe ha presionado el Botón Azul.");
-});
+    fetch("http://localhost:5000/enviarAlarma", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data)
+    })
+    .then(response => response.json())
+    .then(data => {
+        alert("Alarma enviada correctamente.");
+    })
+    .catch(error => {
+        alert("Error al enviar la alarma.");
+        console.error("Error:", error);
+    });
+}
