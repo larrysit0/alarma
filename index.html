@@ -1,3 +1,4 @@
+<!-- webapp/index.html -->
 <!DOCTYPE html>
 <html lang="es">
 <head>
@@ -7,14 +8,23 @@
     <link rel="stylesheet" href="styles.css">
 </head>
 <body>
+    <div class="container">
+        <h1>⚠️Sistema de Alarmas</h1>
+        <h2>Vecinos Trebol-Brisas</h2>
 
-    <h1>⚠️ Sistema de Alarma Telegram</h1>
-    <p>Presiona un botón para enviar una alerta a Telegram.</p>
+        <!-- Botón Rojo -->
+        <div class="alert-box">
+            <textarea id="mensajeRojo" placeholder="Describe la emergencia..."></textarea>
+            <button class="btn rojo" onclick="enviarAlarma(true)">🚨 Enviar con Geolocalización</button>
+        </div>
 
-    <!-- Botones de alarma -->
-    <button id="botonRojo">🚨 Botón Rojo - Alerta Máxima</button>
-    <button id="botonAzul">🔵 Botón Azul - Aviso Informativo</button>
+        <!-- Botón Azul -->
+        <div class="alert-box">
+            <textarea id="mensajeAzul" placeholder="Describe la emergencia..."></textarea>
+            <button class="btn azul" onclick="enviarAlarma(false)">🔵 Enviar sin Geolocalización</button>
+        </div>
+    </div>
 
-    <script src="script.js"></script> <!-- Archivo JavaScript -->
+    <script src="script.js"></script>
 </body>
 </html>
