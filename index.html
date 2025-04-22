@@ -1,30 +1,23 @@
-<!-- webapp/index.html -->
 <!DOCTYPE html>
 <html lang="es">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Alarma Telegram</title>
-    <link rel="stylesheet" href="styles.css">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Botón de Emergencia</title>
+  <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
-    <div class="container">
-        <h1>⚠️Sistema de Alarmas</h1>
-        <h2>Vecinos Trebol-Brisas</h2>
+  <div class="container">
+    <h1>🚨 Botón de Emergencia</h1>
+    <p>Describe brevemente la emergencia:</p>
 
-        <!-- Botón Rojo -->
-        <div class="alert-box">
-            <textarea id="mensajeRojo" placeholder="Describe la emergencia..."></textarea>
-            <button class="btn rojo" onclick="enviarAlarma(true)">🚨 Enviar con Geolocalización</button>
-        </div>
+    <textarea id="descripcion" placeholder="Escribe tu mensaje..." maxlength="300"></textarea>
 
-        <!-- Botón Azul -->
-        <div class="alert-box">
-            <textarea id="mensajeAzul" placeholder="Describe la emergencia..."></textarea>
-            <button class="btn azul" onclick="enviarAlarma(false)">🔵 Enviar sin Geolocalización</button>
-        </div>
-    </div>
+    <button id="btnEmergencia" class="btn red" disabled>🚨 Enviar Alerta Roja</button>
 
-    <script src="script.js"></script>
+    <p class="status" id="statusMsg">⏳ Esperando acción del usuario...</p>
+  </div>
+
+  <script src="script.js"></script>
 </body>
 </html>
