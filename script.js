@@ -1,41 +1,33 @@
-function enviarAlarma(conGeolocalizacion) {
-    let mensaje = conGeolocalizacion 
-        ? document.getElementById("mensajeRojo").value 
-        : document.getElementById("mensajeAzul").value;
+const SERVER_URL = "https://1234abcd.ngrok.io/alerta";
 
-    if (mensaje.trim() === "") {
-        alert("Por favor, escribe un mensaje.");
-        return;
-    }
+document.getElementById("btnEmergencia").addEventListener("click", () => {
+  const descripcion = document.getElementById("descripcion").value.trim();
 
-    // Si incluye geolocalización, obtenerla
-    if (conGeolocalizacion && navigator.geolocation) {
-        navigator.geolocation.getCurrentPosition(function(position) {
-            mensaje += `\n📍 Ubicación: https://www.google.com/maps?q=${position.coords.latitude},${position.coords.longitude}`;
-            enviarMensajeAlServidor(mensaje, conGeolocalizacion);
-        }, function(error) {
-            alert("No se pudo obtener la ubicación.");
-            enviarMensajeAlServidor(mensaje, conGeolocalizacion);
-        });
-    } else {
-        enviarMensajeAlServidor(mensaje, conGeolocalizacion);
-    }
-}
+  if (!navigator.geolocation) {
+    alert("Geolocalización no soportada");
+    return;
+  }
 
-function enviarMensajeAlServidor(mensaje, geolocalizacion) {
-    let data = { mensaje, geolocalizacion };
+  navigator.geolocation.getCurrentPosition(pos => {
+    const payload = {
+      mensaje: descripcion || "Alerta Roja Activada",
+      lat: pos.coords.latitude,
+      lon: pos.coords.longitude
+    };
 
-    fetch("http://localhost:5000/enviarAlarma", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(data)
+    fetch(SERVER_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload)
     })
-    .then(response => response.json())
+    .then(res => res.json())
     .then(data => {
-        alert("Alarma enviada correctamente.");
+      document.getElementById("statusMsg").textContent = data.status;
     })
-    .catch(error => {
-        alert("Error al enviar la alarma.");
-        console.error("Error:", error);
+    .catch(err => {
+      document.getElementById("statusMsg").textContent = "❌ Error al enviar alerta";
     });
-}
+  }, () => {
+    alert("No se pudo obtener la ubicación.");
+  });
+});
