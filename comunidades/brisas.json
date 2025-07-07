@@ -1,0 +1,22 @@
+{
+  "miembros": [
+    {
+      "nombre": "poronguito",
+      "direccion": "Av. Larco herrera camilla jajaja 123",
+      "telefono": "+51991363320",
+      "geolocalizacion": {
+        "lat": -12.1225,
+        "lon": -77.0290
+      }
+    },
+    {
+      "nombre": "pulga pulgon",
+      "direccion": "Calle Los Sauces con salsa de tomate 456",
+      "telefono": "+51980516446",
+      "geolocalizacion": {
+        "lat": -12.1234,
+        "lon": -77.0280
+      }
+    }
+  ]
+}
