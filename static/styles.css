@@ -132,4 +132,3 @@ input:checked + .slider {
 input:checked + .slider:before {
   transform: translateX(26px); /* Mueve el círculo a la derecha cuando está activado */
 }
-
