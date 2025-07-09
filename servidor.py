@@ -1,5 +1,6 @@
 from flask import Flask, request, jsonify, render_template, Response
 from flask_cors import CORS
+from datetime import datetime
 import os
 import json
 import requests
@@ -91,6 +92,7 @@ def recibir_alerta():
 <b>Dirección:</b> {direccion}
 <b>Descripción:</b> {descripcion}
 <b>Ubicación:</b> {lat}, {lon}
+<b>🕐 Hora:</b> {datetime.now().strftime('%d/%m/%Y %H:%M:%S')}
 """
 
     # 💬 Enviar mensaje por Telegram al grupo
