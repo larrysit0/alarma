@@ -2,7 +2,7 @@ import requests
 import os
 
 # 🔐 TOKEN del bot (debe estar configurado como variable de entorno en Railway o .env)
-TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
+TELEGRAM_BOT_TOKEN = os.getenv("7583411471:AAGLo-d1vVb3O0bKqbgdK8YcJQjeg4TrBMQ")
 
 # ✅ Lista de comunidades con sus respectivos grupos de Telegram
 comunidades = [
