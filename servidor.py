@@ -21,7 +21,7 @@ TWILIO_AUTH_TOKEN = os.getenv('TWILIO_AUTH_TOKEN')
 TWILIO_FROM_NUMBER = os.getenv('TWILIO_FROM_NUMBER')
 
 # 🤖 Token de tu bot de Telegram
-TELEGRAM_BOT_TOKEN = os.getenv('7583411471:AAGLo-d1vVb3O0bKqbgdK8YcJQjeg4TrBMQ')
+TELEGRAM_BOT_TOKEN = os.getenv('TELEGRAM_BOT_TOKEN')
 
 # 🎯 Cliente Twilio
 client = Client(TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN)
