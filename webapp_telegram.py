@@ -6,7 +6,7 @@ TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
 
 # ✅ Lista de comunidades con sus respectivos grupos de Telegram
 comunidades = [
-    {"nombre": "brisas", "chat_id": "-123456789"},
+    {"nombre": "brisas", "chat_id": "-1002585455176"},
     {"nombre": "miraflores", "chat_id": "-987654321"},
     {"nombre": "condores", "chat_id": "-111222333"},
     # ➕ Agrega más comunidades según necesites...
