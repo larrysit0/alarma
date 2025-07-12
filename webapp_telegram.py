@@ -11,8 +11,8 @@ BASE_URL = "https://alarma-production.up.railway.app"
 # 📋 Diccionario de comunidades conocidas (puedes agregar más luego)
 comunidades = {
     "-1002585455176": "brisas",
-    "-987654321": "miraflores",
-    "-111222333": "condores"
+    "-1002773966470": "miraflores",
+    "-1002780392932": "sos"
 }
 
 # 📤 Envía un botón Web App al grupo correspondiente
