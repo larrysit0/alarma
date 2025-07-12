@@ -66,18 +66,18 @@ def main():
             # 🧾 Extrae el chat (grupo o usuario)
             chat = message.get("chat", {})
             chat_id = str(chat.get("id"))
-            nombre_grupo = chat.get("title", "Privado o Sin Nombre")
+            nombre_grupo = chat.get("title", "Privado")
 
             # 🖨️ Muestra el ID del grupo por consola (Railway logs)
             print(f"🆔 chat_id detectado: {chat_id} | Nombre: {nombre_grupo}")
 
             # 📌 Si el mensaje fue "/getid", responde directamente con el chat_id
-            if message.get("text", "").strip().lower() == "/getid":
+            if message.get("text", "").strip().lower() in ["/getid", "getid"]:
                 requests.post(
                     f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage",
                     json={
                         "chat_id": chat_id,
-                        "text": f"✅ Este es el chat_id del grupo *{nombre_grupo}*:\n\n`{chat_id}`",
+                        "text": f"✅ Este es el chat_id del grupo *{nombre_grupo}*:\n`{chat_id}`",
                         "parse_mode": "Markdown"
                     }
                 )
