@@ -57,6 +57,10 @@ def main():
                 continue
             chat = message.get("chat", {})
             chat_id = str(chat.get("id"))
+            nombre_grupo = chat.get("title", "Privado")
+
+            print(f"🆔 chat_id detectado: {chat_id} | Nombre: {nombre_grupo}")
+            
             if chat_id in comunidades:
                 nombre = comunidades[chat_id]
                 enviar_boton(chat_id, nombre)
