@@ -1,0 +1,41 @@
+{
+  "telegram_chat_id": "-1002585455176",
+  "miembros": [
+    {
+      "nombre": "locoin",
+      "direccion": "Av. Larco herrera camilla jajaja 123",
+      "telefono": "+51960661434",
+      "geolocalizacion": {
+        "lat": -12.1225,
+        "lon": -77.0290
+      }
+    },
+    {
+      "nombre": "pulga pulgon",
+      "direccion": "Calle Los Sauces con salsa de tomate 456",
+      "telefono": "+51980516446",
+      "geolocalizacion": {
+        "lat": -12.1234,
+        "lon": -77.0280
+      }
+    },
+    {
+      "nombre": "juanito relámpago",
+      "direccion": "Calle trueno 789",
+      "telefono": "+51944445555",
+      "geolocalizacion": {
+        "lat": -12.1245,
+        "lon": -77.0270
+      }
+    },
+    {
+      "nombre": "maria tormenta",
+      "direccion": "Av. huracán con relámpago 321",
+      "telefono": "+51933332222",
+      "geolocalizacion": {
+        "lat": -12.1255,
+        "lon": -77.0260
+      }
+    }
+  ]
+}
