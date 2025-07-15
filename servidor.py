@@ -125,7 +125,7 @@ def enviar_telegram(chat_id, mensaje):
         return
 
     url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage"
-    photo_url = "https://imgur.com/a/WcCyGEk"
+    photo_url = "https://i.postimg.cc/RVD27C14/alarma-imagen.png"
     payload = {
         "chat_id": chat_id,
         "photo": photo_url,
