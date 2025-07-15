@@ -124,7 +124,7 @@ def enviar_telegram(chat_id, mensaje):
         print("❌ No se encontró chat_id de Telegram para esta comunidad.")
         return
 
-    url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage"
+    url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendPhoto"
     photo_url = "https://i.postimg.cc/RVD27C14/alarma-imagen.png"
     payload = {
         "chat_id": chat_id,
