@@ -91,7 +91,7 @@ def recibir_alerta():
 <b>Comunidad:</b> {comunidad.upper()}
 <b>Dirección:</b> {direccion}
 <b>Descripción:</b> {descripcion}
-<b>Ubicación:</b> {lat}, {lon}
+<b>Ubicación:</b> <a href="https://www.google.com/maps?q={lat},{lon}">Ver en Google Maps</a>
 <b>🕐 Hora:</b> {datetime.now().strftime('%d/%m/%Y %H:%M:%S')}
 """
 
