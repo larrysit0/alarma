@@ -12,20 +12,20 @@
     },
     {
       "nombre": "pulga pulgon",
-      "direccion": "Calle Los Sauces con salsa de tomate 456",
+      "direccion": "san vicente cañete, brisas concon km 160.5",
       "telefono": "+51980516446",
       "geolocalizacion": {
-        "lat": -12.1234,
-        "lon": -77.0280
+        "lat": -13.230875,
+        "lon": -76.313099
       }
     },
     {
       "nombre": "poronguito fuentes",
-      "direccion": "Calle trueno 789",
+      "direccion": "san vicente cañete, brisas concon km 160.5",
       "telefono": "+51991363320",
       "geolocalizacion": {
-        "lat": -12.1245,
-        "lon": -77.0270
+        "lat": -13.230875,
+        "lon": -76.313099
       }
     },
     {
