@@ -15,8 +15,8 @@
       "direccion": "Calle Los Sauces con salsa de tomate 456",
       "telefono": "+51980516446",
       "geolocalizacion": {
-        "lat": -12.1333°,
-        "lon": -77.0333°
+        "lat": -12.1333,
+        "lon": -77.0333
       }
     },
     {
@@ -24,8 +24,8 @@
       "direccion": "Calle trueno 789",
       "telefono": "+51929145876",
       "geolocalizacion": {
-        "lat": -12.0833°,
-        "lon": -77.0750°
+        "lat": -12.0833,
+        "lon": -77.0750
       }
     },
     {
@@ -33,8 +33,8 @@
       "direccion": "Av. huracán con relámpago 321",
       "telefono": "+51991363320",
       "geolocalizacion": {
-        "lat": -12.1481°,
-        "lon": -77.0222°
+        "lat": -12.1481,
+        "lon": -77.0222
       }
     }
   ]
