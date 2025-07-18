@@ -2,7 +2,7 @@
   "telegram_chat_id": "-1002585455176",
   "miembros": [
     {
-      "nombre": "locoin",
+      "nombre": "larry",
       "direccion": "Av. Larco herrera camilla jajaja 123",
       "telefono": "+51960661434",
       "geolocalizacion": {
@@ -11,30 +11,30 @@
       }
     },
     {
-      "nombre": "pulga pulgon",
+      "nombre": "pulga",
       "direccion": "Calle Los Sauces con salsa de tomate 456",
       "telefono": "+51980516446",
       "geolocalizacion": {
-        "lat": -12.1234,
-        "lon": -77.0280
+        "lat": -12.1333°,
+        "lon": -77.0333°
       }
     },
     {
-      "nombre": "muloin contreras",
+      "nombre": "muloin",
       "direccion": "Calle trueno 789",
       "telefono": "+51929145876",
       "geolocalizacion": {
-        "lat": -12.1245,
-        "lon": -77.0270
+        "lat": -12.0833°,
+        "lon": -77.0750°
       }
     },
     {
-      "nombre": "poronguito fuentes",
+      "nombre": "poronguito",
       "direccion": "Av. huracán con relámpago 321",
       "telefono": "+51991363320",
       "geolocalizacion": {
-        "lat": -12.1255,
-        "lon": -77.0260
+        "lat": -12.1481°,
+        "lon": -77.0222°
       }
     }
   ]
