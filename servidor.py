@@ -66,9 +66,24 @@ def recibir_alerta():
     ubicacion = data.get('ubicacion', {})
     direccion = data.get('direccion')
     comunidad = data.get('comunidad')
+    user_telegram = data.get('user_telegram', {}) # <-- NUEVO: Obtener datos del usuario de Telegram
 
     lat = ubicacion.get('lat')
     lon = ubicacion.get('lon')
+
+    # Extraer datos del usuario de Telegram
+    user_id = user_telegram.get('id', 'Desconocido')
+    user_first_name = user_telegram.get('first_name', 'Desconocido')
+    user_last_name = user_telegram.get('last_name', '')
+    user_username = user_telegram.get('username', '')
+
+    # Construir nombre completo y username para el mensaje
+    nombre_completo_usuario = f"{user_first_name} {user_last_name}".strip()
+    if user_username:
+        nombre_completo_usuario += f" (@{user_username})"
+    else:
+        nombre_completo_usuario += f" (ID: {user_id})" # Mostrar ID si no hay username
+
 
     if not descripcion or not lat or not lon or not comunidad:
         return jsonify({'error': 'Faltan datos'}), 400
@@ -82,23 +97,23 @@ def recibir_alerta():
         datos_comunidad = json.load(f)
 
     miembros = datos_comunidad.get('miembros', [])
-    telegram_chat_id = datos_comunidad.get('telegram_chat_id')
+    telegram_chat_id = datos_comunidad.get('telegram_chat_id') # Este es el ID del grupo
 
-    # 🧾 Preparar mensaje
+    # 🧾 Preparar mensaje con los datos del usuario que activó la alerta
     mensaje = f"""
 🚨 <b>ALERTA VECINAL</b> 🚨
 
+<b>Activada por:</b> {nombre_completo_usuario}
 <b>Comunidad:</b> {comunidad.upper()}
 <b>Dirección:</b> {direccion}
 <b>Descripción:</b> {descripcion}
 <b>Ubicación:</b> <a href="https://www.google.com/maps?q={lat},{lon}">Ver en Google Maps</a>
 <b>🕐 Hora:</b> {datetime.now().strftime('%d/%m/%Y %H:%M:%S')}
 """
-
-    # 💬 Enviar mensaje por Telegram al grupo
+    # 💬 Enviar mensaje por Telegram al grupo (usando el chat_id de la comunidad)
     enviar_telegram(telegram_chat_id, mensaje)
 
-    # ☎️ Realizar llamadas a los teléfonos de los miembros
+    # ☎️ Realizar llamadas a los teléfonos de los miembros (esto sigue igual)
     for miembro in miembros:
         nombre = miembro.get('nombre')
         telefono = miembro.get('telefono')
@@ -108,7 +123,7 @@ def recibir_alerta():
 
         try:
             client.calls.create(
-                twiml=f'<Response><Say voice="alice" language="es-ES">Emergencia. Alarma vecinal. Revisa tu celular.</Say></Response>',
+                twiml=f'<Response><Say voice="alice" language="es-ES">Emergencia. Alarma vecinal. Revisa tu celular. La alerta fue activada por {user_first_name}.</Say></Response>', # Puedes incluir el nombre en la llamada si quieres
                 from_=TWILIO_FROM_NUMBER,
                 to=telefono
             )
@@ -150,4 +165,3 @@ def twilio_voice():
 # ▶️ Ejecutar el servidor
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=8000)
-    
