@@ -49,9 +49,8 @@ def ubicaciones_de_comunidad(comunidad):
     with open(path, 'r', encoding='utf-8') as f:
         data = json.load(f)
 
-    # Si la comunidad tiene formato extendido con "miembros" y "telegram_chat_id"
     if isinstance(data, dict):
-        return jsonify(data.get("miembros", []))  # Enviar solo los miembros como ubicaciones
+        return jsonify(data.get("miembros", []))
     else:
         return jsonify(data)
 
@@ -66,29 +65,25 @@ def recibir_alerta():
     ubicacion = data.get('ubicacion', {})
     direccion = data.get('direccion')
     comunidad = data.get('comunidad')
-    user_telegram = data.get('user_telegram', {}) # <-- NUEVO: Obtener datos del usuario de Telegram
+    user_telegram = data.get('user_telegram', {})
 
     lat = ubicacion.get('lat')
     lon = ubicacion.get('lon')
 
-    # Extraer datos del usuario de Telegram
     user_id = user_telegram.get('id', 'Desconocido')
     user_first_name = user_telegram.get('first_name', 'Desconocido')
     user_last_name = user_telegram.get('last_name', '')
     user_username = user_telegram.get('username', '')
 
-    # Construir nombre completo y username para el mensaje
     nombre_completo_usuario = f"{user_first_name} {user_last_name}".strip()
     if user_username:
         nombre_completo_usuario += f" (@{user_username})"
     else:
-        nombre_completo_usuario += f" (ID: {user_id})" # Mostrar ID si no hay username
-
+        nombre_completo_usuario += f" (ID: {user_id})"
 
     if not descripcion or not lat or not lon or not comunidad:
         return jsonify({'error': 'Faltan datos'}), 400
 
-    # 📄 Leer archivo JSON de la comunidad
     archivo_comunidad = os.path.join(DATA_FILE, f"{comunidad}.json")
     if not os.path.exists(archivo_comunidad):
         return jsonify({'error': 'Comunidad no encontrada'}), 404
@@ -97,9 +92,8 @@ def recibir_alerta():
         datos_comunidad = json.load(f)
 
     miembros = datos_comunidad.get('miembros', [])
-    telegram_chat_id = datos_comunidad.get('telegram_chat_id') # Este es el ID del grupo
+    telegram_chat_id = datos_comunidad.get('telegram_chat_id')
 
-    # 🧾 Preparar mensaje con los datos del usuario que activó la alerta
     mensaje = f"""
 🚨 <b>ALERTA VECINAL</b> 🚨
 
@@ -110,10 +104,9 @@ def recibir_alerta():
 <b>Ubicación:</b> <a href="https://www.google.com/maps?q={lat},{lon}">Ver en Google Maps</a>
 <b>🕐 Hora:</b> {datetime.now().strftime('%d/%m/%Y %H:%M:%S')}
 """
-    # 💬 Enviar mensaje por Telegram al grupo (usando el chat_id de la comunidad)
+
     enviar_telegram(telegram_chat_id, mensaje)
 
-    # ☎️ Realizar llamadas a los teléfonos de los miembros (esto sigue igual)
     for miembro in miembros:
         nombre = miembro.get('nombre')
         telefono = miembro.get('telefono')
@@ -123,7 +116,7 @@ def recibir_alerta():
 
         try:
             client.calls.create(
-                twiml=f'<Response><Say voice="alice" language="es-ES">Emergencia. Alarma vecinal. Revisa tu celular. La alerta fue activada por {user_first_name}.</Say></Response>', # Puedes incluir el nombre en la llamada si quieres
+                twiml=f'<Response><Say voice="alice" language="es-ES">Emergencia. Alarma vecinal. Revisa tu celular. La alerta fue activada por {user_first_name}.</Say></Response>',
                 from_=TWILIO_FROM_NUMBER,
                 to=telefono
             )
@@ -133,7 +126,6 @@ def recibir_alerta():
 
     return jsonify({'status': f'Alerta enviada a la comunidad {comunidad}'}), 200
 
-# 📡 Enviar mensaje a Telegram (función reutilizable)
 def enviar_telegram(chat_id, mensaje):
     if not chat_id:
         print("❌ No se encontró chat_id de Telegram para esta comunidad.")
@@ -155,13 +147,11 @@ def enviar_telegram(chat_id, mensaje):
     except Exception as e:
         print(f"❌ Excepción al enviar mensaje Telegram: {e}")
 
-# 🎤 Ruta de voz (si deseas usar XML en vez de twiml directo)
 @app.route('/twilio-voice', methods=['POST'])
 def twilio_voice():
     response = VoiceResponse()
     response.say("Emergencia. Alarma vecinal. Revisa tu celular.", voice='alice', language='es-ES')
     return Response(str(response), mimetype='application/xml')
 
-# ▶️ Ejecutar el servidor
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=8000)
