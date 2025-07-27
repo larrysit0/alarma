@@ -90,13 +90,9 @@ document.addEventListener('DOMContentLoaded', () => {
             alert("❌ Faltan datos necesarios");
             return;
         }
-        
-        if (!userData) {
-            console.error("❌ Validación fallida: userData no disponible.");
-            alert("❌ No se pudieron obtener los datos de tu usuario de Telegram. Intenta abrir la Web App de nuevo.");
-            resetFormulario();
-            return;
-        }
+
+        // ⭐⭐⭐ IMPORTANTE: Eliminamos la validación de userData para que la alerta se envíe. ⭐⭐⭐
+        // El resto del código manejará si userData existe o no.
 
         boton.disabled = true;
         boton.textContent = "Enviando...";
@@ -127,9 +123,23 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function enviarAlerta(descripcion, lat, lon, userData) {
         console.log("➡️ ENVIAR ALERTA: La función ha sido llamada.");
-        console.log("📤 Datos a enviar:", { descripcion, lat, lon, userData });
         
         const direccion = ubicacionSeleccionada.direccion || "Dirección no disponible";
+        
+        // ⭐⭐ CAMBIO CLAVE: Construir el objeto user_telegram de forma segura ⭐⭐
+        const userTelegramData = userData ? {
+            id: userData.id,
+            first_name: userData.first_name,
+            last_name: userData.last_name || '',
+            username: userData.username || ''
+        } : {
+            id: 'Desconocido', // Valor por defecto si no hay datos de usuario
+            first_name: 'Anónimo',
+            last_name: '',
+            username: ''
+        };
+
+        console.log("📤 Datos de usuario a enviar:", userTelegramData);
 
         fetch(`${BACKEND_URL}/api/alert`, {
             method: 'POST',
@@ -140,12 +150,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 ubicacion: { lat, lon },
                 direccion: direccion,
                 comunidad: comunidadSeleccionada,
-                user_telegram: {
-                    id: userData.id,
-                    first_name: userData.first_name,
-                    last_name: userData.last_name || '',
-                    username: userData.username || ''
-                }
+                user_telegram: userTelegramData
             })
         })
             .then(res => {
