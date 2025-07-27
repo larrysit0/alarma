@@ -1,7 +1,6 @@
 document.addEventListener('DOMContentLoaded', () => {
-    // ⭐⭐ CAMBIO CLAVE: URL de tu backend en Railway ⭐⭐
     const BACKEND_URL = "https://alarma-production.up.railway.app";
-    // Asegúrate de que esta URL sea la correcta para tu servicio del servidor.py
+    console.log("✅ Script cargado. Backend URL:", BACKEND_URL);
 
     const urlParams = new URLSearchParams(window.location.search);
     const comunidadSeleccionada = urlParams.get('comunidad');
@@ -10,6 +9,7 @@ document.addEventListener('DOMContentLoaded', () => {
         alert("❌ No se especificó la comunidad en la URL.");
         return;
     }
+    console.log("✅ Comunidad seleccionada:", comunidadSeleccionada);
 
     let ubicacionesPredeterminadas = [];
     let ubicacionSeleccionada = null;
@@ -22,14 +22,14 @@ document.addEventListener('DOMContentLoaded', () => {
 
     if (window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.initDataUnsafe) {
         userData = window.Telegram.WebApp.initDataUnsafe.user;
-        console.log("Datos del usuario de Telegram:", userData);
+        console.log("✅ Datos del usuario de Telegram cargados:", userData);
         if (userData && userData.first_name) {
             statusMsg.textContent = `👋 Hola ${userData.first_name} en ${comunidadSeleccionada.toUpperCase()}`;
         } else {
             statusMsg.textContent = `👥 Comunidad detectada: ${comunidadSeleccionada.toUpperCase()}`;
         }
     } else {
-        console.warn("Telegram WebApp API no disponible o initDataUnsafe no cargado.");
+        console.warn("⚠️ Telegram WebApp API no disponible. Esto es normal fuera de Telegram.");
         statusMsg.textContent = `👥 Comunidad detectada: ${comunidadSeleccionada.toUpperCase()}`;
     }
 
@@ -46,12 +46,14 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (ubicacionesPredeterminadas.length > 0) {
                     ubicacionSeleccionada = ubicacionesPredeterminadas[0];
                     statusMsg.textContent = `📍 Usando ubicación predeterminada de ${ubicacionSeleccionada.nombre}`;
+                    console.log("✅ Ubicaciones cargadas correctamente.");
                 } else {
                     statusMsg.textContent = "⚠️ No hay ubicaciones predeterminadas para esta comunidad.";
+                    console.warn("⚠️ No hay ubicaciones predeterminadas.");
                 }
             })
             .catch(error => {
-                console.error("❌ Error:", error.message);
+                console.error("❌ Error en cargarUbicaciones:", error.message);
                 statusMsg.textContent = "❌ No se pudieron cargar las ubicaciones.";
             });
     }
@@ -80,14 +82,17 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     boton.addEventListener('click', () => {
+        console.log("➡️ Evento 'click' en el botón detectado.");
         const descripcion = textarea.value.trim();
 
         if (!descripcion || !comunidadSeleccionada || !ubicacionSeleccionada) {
+            console.error("❌ Validación fallida: faltan datos necesarios.");
             alert("❌ Faltan datos necesarios");
             return;
         }
         
         if (!userData) {
+            console.error("❌ Validación fallida: userData no disponible.");
             alert("❌ No se pudieron obtener los datos de tu usuario de Telegram. Intenta abrir la Web App de nuevo.");
             resetFormulario();
             return;
@@ -98,27 +103,34 @@ document.addEventListener('DOMContentLoaded', () => {
         statusMsg.textContent = "🔄 Enviando alerta...";
 
         if (toggleRealTime.checked && navigator.geolocation) {
+            console.log("➡️ Solicitando ubicación en tiempo real...");
             navigator.geolocation.getCurrentPosition(pos => {
+                console.log("✅ Ubicación obtenida. Llamando a enviarAlerta.");
                 enviarAlerta(descripcion, pos.coords.latitude, pos.coords.longitude, userData);
             }, () => {
+                console.error("❌ Error al obtener ubicación en tiempo real.");
                 alert("❌ No se pudo obtener ubicación en tiempo real.");
                 resetFormulario();
             });
         } else {
             if (!ubicacionSeleccionada || !ubicacionSeleccionada.geolocalizacion) {
+                console.error("❌ Validación fallida: ubicación no válida.");
                 alert("❌ No se ha seleccionado una ubicación válida.");
                 resetFormulario();
                 return;
             }
+            console.log("➡️ Usando ubicación predeterminada. Llamando a enviarAlerta.");
             const { lat, lon } = ubicacionSeleccionada.geolocalizacion;
             enviarAlerta(descripcion, lat, lon, userData);
         }
     });
 
     function enviarAlerta(descripcion, lat, lon, userData) {
-        console.log("📤 Enviando comunidad:", comunidadSeleccionada);
+        console.log("➡️ ENVIAR ALERTA: La función ha sido llamada.");
+        console.log("📤 Datos a enviar:", { descripcion, lat, lon, userData });
+        
         const direccion = ubicacionSeleccionada.direccion || "Dirección no disponible";
-        // ⭐⭐ CAMBIO CLAVE: Usamos la URL absoluta del backend ⭐⭐
+
         fetch(`${BACKEND_URL}/api/alert`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -136,14 +148,21 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             })
         })
-            .then(res => res.json())
+            .then(res => {
+                console.log("✅ Respuesta del servidor recibida (Headers):", res.status);
+                if (!res.ok) {
+                    throw new Error(`Error del servidor: ${res.status} ${res.statusText}`);
+                }
+                return res.json();
+            })
             .then(data => {
+                console.log("✅ Respuesta del servidor (JSON):", data);
                 alert(data.status || "✅ Alerta enviada correctamente.");
                 resetFormulario();
             })
             .catch(err => {
-                console.error("❌ Error al enviar alerta:", err);
-                alert("❌ Error al enviar alerta.");
+                console.error("❌ Error en la llamada fetch:", err);
+                alert("❌ Error al enviar alerta. Consulta la consola para más detalles.");
                 resetFormulario();
             });
     }
