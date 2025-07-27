@@ -11,6 +11,15 @@
       }
     },
     {
+      "nombre": "codigo",
+      "direccion": "Av. peru 534 cruce palmas ",
+      "telefono": "+51917226125",
+      "geolocalizacion": {
+        "lat": -12.0574,
+        "lon": -77.0370
+      }
+    },
+    {
       "nombre": "pulga",
       "direccion": "Calle Los Sauces con salsa de tomate 456",
       "telefono": "+51980516446",
