@@ -20,7 +20,20 @@ document.addEventListener('DOMContentLoaded', () => {
     const statusMsg = document.getElementById('statusMsg');
     const toggleRealTime = document.getElementById('toggleRealTime');
 
-    if (window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.initDataUnsafe) {
+    // ⭐⭐ CAMBIO CLAVE: Intentar obtener los datos del usuario de la URL primero ⭐⭐
+    const userIdFromUrl = urlParams.get('id');
+    const userFirstNameFromUrl = urlParams.get('first_name');
+
+    if (userIdFromUrl) {
+        userData = {
+            id: userIdFromUrl,
+            first_name: userFirstNameFromUrl,
+            last_name: urlParams.get('last_name') || '',
+            username: urlParams.get('username') || ''
+        };
+        console.log("✅ Datos del usuario obtenidos de la URL:", userData);
+        statusMsg.textContent = `👋 Hola ${userData.first_name} en ${comunidadSeleccionada.toUpperCase()}`;
+    } else if (window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.initDataUnsafe) {
         userData = window.Telegram.WebApp.initDataUnsafe.user;
         console.log("✅ Datos del usuario de Telegram cargados:", userData);
         if (userData && userData.first_name) {
@@ -29,9 +42,10 @@ document.addEventListener('DOMContentLoaded', () => {
             statusMsg.textContent = `👥 Comunidad detectada: ${comunidadSeleccionada.toUpperCase()}`;
         }
     } else {
-        console.warn("⚠️ Telegram WebApp API no disponible. Esto es normal fuera de Telegram.");
+        console.warn("⚠️ No se pudieron obtener los datos del usuario.");
         statusMsg.textContent = `👥 Comunidad detectada: ${comunidadSeleccionada.toUpperCase()}`;
     }
+    // ----------------------------------------------------------------------
 
     cargarUbicaciones(comunidadSeleccionada);
 
@@ -91,9 +105,6 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
 
-        // ⭐⭐⭐ IMPORTANTE: Eliminamos la validación de userData para que la alerta se envíe. ⭐⭐⭐
-        // El resto del código manejará si userData existe o no.
-
         boton.disabled = true;
         boton.textContent = "Enviando...";
         statusMsg.textContent = "🔄 Enviando alerta...";
@@ -126,14 +137,13 @@ document.addEventListener('DOMContentLoaded', () => {
         
         const direccion = ubicacionSeleccionada.direccion || "Dirección no disponible";
         
-        // ⭐⭐ CAMBIO CLAVE: Construir el objeto user_telegram de forma segura ⭐⭐
         const userTelegramData = userData ? {
             id: userData.id,
             first_name: userData.first_name,
             last_name: userData.last_name || '',
             username: userData.username || ''
         } : {
-            id: 'Desconocido', // Valor por defecto si no hay datos de usuario
+            id: 'Desconocido',
             first_name: 'Anónimo',
             last_name: '',
             username: ''
