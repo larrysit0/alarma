@@ -2,49 +2,44 @@
   "telegram_chat_id": "-1002585455176",
   "miembros": [
     {
-      "nombre": "larry",
-      "direccion": "Av. Larco herrera camilla jajaja 123",
-      "telefono": "+51960661434",
-      "geolocalizacion": {
-        "lat": -12.1225,
-        "lon": -77.0290
-      }
-    },
-    {
-      "nombre": "codigo",
-      "direccion": "Av. peru 534 cruce palmas ",
-      "telefono": "+51917226125",
-      "geolocalizacion": {
-        "lat": -12.0574,
-        "lon": -77.0370
-      }
-    },
-    {
-      "nombre": "pulga",
-      "direccion": "Calle Los Sauces con salsa de tomate 456",
-      "telefono": "+51980516446",
-      "geolocalizacion": {
-        "lat": -12.1333,
-        "lon": -77.0333
-      }
-    },
-    {
-      "nombre": "muloin",
-      "direccion": "Calle trueno 789",
-      "telefono": "+51929145876",
-      "geolocalizacion": {
-        "lat": -12.0833,
-        "lon": -77.0750
-      }
-    },
-    {
-      "nombre": "poronguito",
-      "direccion": "Av. huracán con relámpago 321",
+      "nombre": "Olinda Pinto",
       "telefono": "+51991363320",
+      "direccion": "Av. Principal 101",
       "geolocalizacion": {
-        "lat": -12.1481,
-        "lon": -77.0222
-      }
+        "lat": -12.0464,
+        "lon": -77.0428
+      },
+      "telegram_id": 123456789
+    },
+    {
+      "nombre": "Larry ortiz",
+      "telefono": "+51960661434",
+      "direccion": "Calle Secundaria 202 ",
+      "geolocalizacion": {
+        "lat": -12.0456,
+        "lon": -77.0333
+      },
+      "telegram_id": 1667177404
+    },
+    {
+      "nombre": "Jhonny firnandiz",
+      "telefono": "+51929145876",
+      "direccion": "Pasaje Mirador 303",
+      "geolocalizacion": {
+        "lat": -12.0470,
+        "lon": -77.0400
+      },
+      "telegram_id": 1579324364
+    },
+    {
+      "nombre": "Irene Fernandez",
+      "telefono": "+51980516446",
+      "direccion": "Jirón Paz 404",
+      "geolocalizacion": {
+        "lat": -12.0488,
+        "lon": -77.0381
+      },
+      "telegram_id": 1926559823
     }
   ]
 }
