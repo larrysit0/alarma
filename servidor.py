@@ -1,157 +1,133 @@
-from flask import Flask, request, jsonify, render_template, Response
-from flask_cors import CORS
-from datetime import datetime
 import os
-import json
 import requests
+import json
+from flask import Flask, request, jsonify, send_from_directory
+from flask_cors import CORS
 
-# 📦 Twilio para llamadas
-from twilio.rest import Client
-from twilio.twiml.voice_response import VoiceResponse
+app = Flask(__name__, static_folder='static')
+CORS(app) # Permite solicitudes de cualquier origen, importante para la Web App
 
-app = Flask(__name__)
-CORS(app)
+# 🔐 TOKEN del bot (configurado como variable de entorno en Railway)
+TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
 
-# 📁 Carpeta con los datos de las comunidades
-DATA_FILE = os.path.join(os.path.dirname(__file__), 'comunidades')
+# Directorio donde se encuentran tus archivos JSON individuales de comunidades
+COMUNIDADES_DIR = 'comunidades'
 
-# 🔑 Credenciales Twilio
-TWILIO_ACCOUNT_SID = os.getenv('TWILIO_ACCOUNT_SID')
-TWILIO_AUTH_TOKEN = os.getenv('TWILIO_AUTH_TOKEN')
-TWILIO_FROM_NUMBER = os.getenv('TWILIO_FROM_NUMBER')
-
-# 🤖 Token de tu bot de Telegram
-TELEGRAM_BOT_TOKEN = os.getenv('TELEGRAM_BOT_TOKEN')
-
-# 🎯 Cliente Twilio
-client = Client(TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN)
-
-# 🌐 Página principal
 @app.route('/')
 def index():
-    return render_template('index.html')  # Debe estar en /templates
+    return send_from_directory(app.static_folder, 'index.html')
 
-# 🔍 Lista de comunidades
-@app.route('/api/comunidades')
-def listar_comunidades():
-    comunidades = []
-    for archivo in os.listdir(DATA_FILE):
-        if archivo.endswith('.json'):
-            comunidades.append(archivo.replace('.json', ''))
-    return jsonify(comunidades)
+@app.route('/static/<path:filename>')
+def static_files(filename):
+    return send_from_directory(app.static_folder, filename)
 
-# 📍 Ubicaciones de una comunidad
-@app.route('/api/ubicaciones/<comunidad>')
-def ubicaciones_de_comunidad(comunidad):
-    path = os.path.join(DATA_FILE, f"{comunidad}.json")
-    if not os.path.exists(path):
-        return jsonify({"error": "Comunidad no encontrada"}), 404
-    with open(path, 'r', encoding='utf-8') as f:
-        data = json.load(f)
+# Función auxiliar para cargar un JSON de comunidad específico
+def load_community_json(comunidad_nombre):
+    filepath = os.path.join(COMUNIDADES_DIR, f"{comunidad_nombre.lower()}.json")
+    if not os.path.exists(filepath):
+        print(f"❌ Error: Archivo JSON no encontrado para la comunidad '{comunidad_nombre}' en '{filepath}'.")
+        return None
+    try:
+        with open(filepath, 'r', encoding='utf-8') as f:
+            comunidad_info = json.load(f)
+            # Validar que el JSON cargado tenga la estructura esperada
+            if isinstance(comunidad_info, dict) and "telegram_chat_id" in comunidad_info and "miembros" in comunidad_info:
+                print(f"✅ Comunidad '{comunidad_nombre}' cargada desde '{filepath}'.")
+                return comunidad_info
+            else:
+                print(f"⚠️ Advertencia: '{filepath}' no parece ser un JSON de comunidad válido.")
+                return None
+    except json.JSONDecodeError:
+        print(f"❌ Error: '{filepath}' tiene un formato JSON inválido.")
+        return None
+    except Exception as e:
+        print(f"❌ Error al cargar '{filepath}': {e}")
+        return None
 
-    if isinstance(data, dict):
-        return jsonify(data.get("miembros", []))
-    else:
-        return jsonify(data)
+# ⭐⭐ CAMBIO CLAVE: Esta ruta ahora devuelve el OBJETO COMPLETO de la comunidad ⭐⭐
+# Incluirá "miembros" y "ubicaciones_fijas" (si existen en el JSON de la comunidad).
+@app.route('/api/comunidad/<comunidad>', methods=['GET'])
+def get_comunidad_data(comunidad):
+    comunidad_info = load_community_json(comunidad)
+    if comunidad_info:
+        return jsonify(comunidad_info)
+    return jsonify({}), 404 # Devuelve un objeto vacío y 404 si la comunidad no se encuentra
 
-# 🚨 Alerta roja (se recibe desde el JS del botón)
 @app.route('/api/alert', methods=['POST'])
-def recibir_alerta():
-    data = request.get_json()
-    print("📦 Datos recibidos:", data)
+def handle_alert():
+    data = request.json
+    print("📦 Datos recibidos para la alerta:", data)
 
-    tipo = data.get('tipo')
-    descripcion = data.get('descripcion')
-    ubicacion = data.get('ubicacion', {})
-    direccion = data.get('direccion')
-    comunidad = data.get('comunidad')
+    tipo = data.get('tipo', 'Alerta')
+    descripcion = data.get('descripcion', 'Sin descripción')
+    ubicacion_lat = data.get('ubicacion', {}).get('lat')
+    ubicacion_lon = data.get('ubicacion', {}).get('lon')
+    direccion = data.get('direccion', 'Dirección no disponible')
+    comunidad_nombre = data.get('comunidad')
     user_telegram = data.get('user_telegram', {})
 
-    lat = ubicacion.get('lat')
-    lon = ubicacion.get('lon')
+    emisor_id = user_telegram.get('id', 'Desconocido')
+    emisor_nombre = user_telegram.get('first_name', 'Anónimo')
+    emisor_username = user_telegram.get('username', '')
+    
+    # Cargar la información de la comunidad que activó la alerta
+    comunidad_info = load_community_json(comunidad_nombre)
 
-    user_id = user_telegram.get('id', 'Desconocido')
-    user_first_name = user_telegram.get('first_name', 'Desconocido')
-    user_last_name = user_telegram.get('last_name', '')
-    user_username = user_telegram.get('username', '')
+    if not comunidad_info:
+        print(f"❌ Error: Comunidad '{comunidad_nombre}' no encontrada o JSON inválido para alerta.")
+        return jsonify({"status": "Error: Comunidad no configurada para alertas"}), 400
 
-    nombre_completo_usuario = f"{user_first_name} {user_last_name}".strip()
-    if user_username:
-        nombre_completo_usuario += f" (@{user_username})"
-    else:
-        nombre_completo_usuario += f" (ID: {user_id})"
+    chat_id_grupo = comunidad_info.get("telegram_chat_id")
+    miembros_grupo = comunidad_info.get("miembros", [])
+    
+    if not chat_id_grupo:
+        print(f"❌ Error: Chat ID de Telegram no encontrado en el JSON para la comunidad: {comunidad_nombre}")
+        return jsonify({"status": "Error: Comunidad no tiene Chat ID configurado"}), 400
 
-    if not descripcion or not lat or not lon or not comunidad:
-        return jsonify({'error': 'Faltan datos'}), 400
 
-    archivo_comunidad = os.path.join(DATA_FILE, f"{comunidad}.json")
-    if not os.path.exists(archivo_comunidad):
-        return jsonify({'error': 'Comunidad no encontrada'}), 404
+    mensaje = f"🚨 *¡ALERTA ROJA EN {comunidad_nombre.upper()}!* 🚨\n\n"
+    mensaje += f"*Emitida por:* {emisor_nombre} ({'@' + emisor_username if emisor_username else 'ID:' + str(emisor_id)})\n"
+    mensaje += f"*Descripción:* {descripcion}\n"
+    if direccion != "Dirección no disponible":
+        mensaje += f"*Dirección:* {direccion}\n"
+    if ubicacion_lat and ubicacion_lon:
+        mensaje += f"*Ubicación:* [Ver en Mapa](https://www.google.com/maps/search/?api=1&query={ubicacion_lat},{ubicacion_lon})"
+    
+    send_telegram_message(chat_id_grupo, mensaje, parse_mode='Markdown')
 
-    with open(archivo_comunidad, 'r', encoding='utf-8') as f:
-        datos_comunidad = json.load(f)
+    for miembro in miembros_grupo:
+        miembro_telegram_id = miembro.get('telegram_id')
+        miembro_nombre = miembro.get('nombre')
 
-    miembros = datos_comunidad.get('miembros', [])
-    telegram_chat_id = datos_comunidad.get('telegram_chat_id')
+        if miembro_telegram_id and str(miembro_telegram_id) != str(emisor_id):
+            print(f"📤 Notificando a miembro: {miembro_nombre} (ID: {miembro_telegram_id})")
+            mensaje_miembro = f"🚨 *Alerta de Vecino!* 🚨\n\n"
+            mensaje_miembro += f"Tu vecino *{emisor_nombre}* ha activado una alerta en {comunidad_nombre.upper()}:\n"
+            mensaje_miembro += f"Descripción: {descripcion}\n"
+            if direccion != "Dirección no disponible":
+                mensaje_miembro += f"Dirección: {direccion}\n"
+            if ubicacion_lat and ubicacion_lon:
+                mensaje_miembro += f"Ubicación: [Ver en Mapa](https://www.google.com/maps/search/?api=1&query={ubicacion_lat},{ubicacion_lon})"
+            
+            send_telegram_message(miembro_telegram_id, mensaje_miembro, parse_mode='Markdown')
+            
+    return jsonify({"status": f"Alerta enviada a la comunidad {comunidad_nombre}"})
 
-    mensaje = f"""
-🚨 <b>ALERTA VECINAL</b> 🚨
-
-<b>Activada por:</b> {nombre_completo_usuario}
-<b>Comunidad:</b> {comunidad.upper()}
-<b>Dirección:</b> {direccion}
-<b>Descripción:</b> {descripcion}
-<b>Ubicación:</b> <a href="https://www.google.com/maps?q={lat},{lon}">Ver en Google Maps</a>
-<b>🕐 Hora:</b> {datetime.now().strftime('%d/%m/%Y %H:%M:%S')}
-"""
-
-    enviar_telegram(telegram_chat_id, mensaje)
-
-    for miembro in miembros:
-        nombre = miembro.get('nombre')
-        telefono = miembro.get('telefono')
-
-        if not telefono:
-            continue
-
-        try:
-            client.calls.create(
-                twiml=f'<Response><Say voice="alice" language="es-ES">Emergencia. Alarma vecinal. Revisa tu celular. La alerta fue activada por {user_first_name}.</Say></Response>',
-                from_=TWILIO_FROM_NUMBER,
-                to=telefono
-            )
-            print(f"📞 Llamada iniciada a {telefono}")
-        except Exception as e:
-            print(f"❌ Error al llamar a {telefono}: {e}")
-
-    return jsonify({'status': f'Alerta enviada a la comunidad {comunidad}'}), 200
-
-def enviar_telegram(chat_id, mensaje):
-    if not chat_id:
-        print("❌ No se encontró chat_id de Telegram para esta comunidad.")
-        return
-
+def send_telegram_message(chat_id, text, parse_mode='HTML'):
     url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage"
     payload = {
         "chat_id": chat_id,
-        "text": mensaje,
-        "parse_mode": "HTML"
+        "text": text,
+        "parse_mode": parse_mode
     }
-
     try:
         response = requests.post(url, json=payload)
-        if response.ok:
-            print(f"✅ Mensaje Telegram enviado al grupo {chat_id}")
-        else:
-            print(f"❌ Error Telegram: {response.text}")
-    except Exception as e:
-        print(f"❌ Excepción al enviar mensaje Telegram: {e}")
-
-@app.route('/twilio-voice', methods=['POST'])
-def twilio_voice():
-    response = VoiceResponse()
-    response.say("Emergencia. Alarma vecinal. Revisa tu celular.", voice='alice', language='es-ES')
-    return Response(str(response), mimetype='application/xml')
+        response.raise_for_status()
+        print(f"✅ Mensaje enviado a {chat_id} (Telegram).")
+        return response.json()
+    except requests.exceptions.RequestException as e:
+        print(f"❌ Error al enviar mensaje a Telegram {chat_id}: {e}")
+        return None
 
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=8000)
+    app.run(host='0.0.0.0', port=os.getenv("PORT", 8000))
