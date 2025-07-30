@@ -44,8 +44,7 @@ def load_community_json(comunidad_nombre):
         print(f"❌ Error al cargar '{filepath}': {e}")
         return None
 
-# ⭐⭐ CAMBIO CLAVE: Esta ruta ahora devuelve el OBJETO COMPLETO de la comunidad ⭐⭐
-# Incluirá "miembros" y "ubicaciones_fijas" (si existen en el JSON de la comunidad).
+# Esta ruta ahora devuelve el OBJETO COMPLETO de la comunidad (solo miembros y chat_id)
 @app.route('/api/comunidad/<comunidad>', methods=['GET'])
 def get_comunidad_data(comunidad):
     comunidad_info = load_community_json(comunidad)
@@ -62,7 +61,7 @@ def handle_alert():
     descripcion = data.get('descripcion', 'Sin descripción')
     ubicacion_lat = data.get('ubicacion', {}).get('lat')
     ubicacion_lon = data.get('ubicacion', {}).get('lon')
-    direccion = data.get('direccion', 'Dirección no disponible')
+    direccion = data.get('direccion', 'Dirección no disponible') # Esta es la dirección que llega desde script.js
     comunidad_nombre = data.get('comunidad')
     user_telegram = data.get('user_telegram', {})
 
