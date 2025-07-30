@@ -22,7 +22,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const statusMsg = document.getElementById('statusMsg');
     const toggleRealTime = document.getElementById('toggleRealTime');
 
-    // Paso 1: Obtener datos del usuario desde la URL
+    // Paso 1: Obtener datos del usuario desde la URL (sin cambios)
     const userIdFromUrl = urlParams.get('id');
     const userFirstNameFromUrl = urlParams.get('first_name');
 
@@ -36,7 +36,6 @@ document.addEventListener('DOMContentLoaded', () => {
         console.log("✅ Datos del usuario obtenidos de la URL:", userData);
         statusMsg.textContent = `👋 Hola ${userData.first_name} en ${comunidadSeleccionada.toUpperCase()}`;
     } else if (window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.initDataUnsafe) {
-        // Fallback (menos probable en grupos, pero por si acaso)
         userData = window.Telegram.WebApp.initDataUnsafe.user;
         console.log("✅ Datos del usuario de Telegram cargados:", userData);
         if (userData && userData.first_name) {
@@ -49,53 +48,50 @@ document.addEventListener('DOMContentLoaded', () => {
         statusMsg.textContent = `👥 Comunidad detectada: ${comunidadSeleccionada.toUpperCase()}`;
     }
 
-    // Paso 2: Cargar datos iniciales (miembros y ubicaciones fijas)
-    cargarDatosIniciales(comunidadSeleccionada);
+    // ⭐⭐ CAMBIO CLAVE: Cargar TODOS los datos de la comunidad desde una única ruta ⭐⭐
+    cargarDatosComunidad(comunidadSeleccionada);
 
-    async function cargarDatosIniciales(comunidad) {
-        // Cargar ubicaciones predeterminadas de la comunidad (puntos de interés)
+    async function cargarDatosComunidad(comunidad) {
         try {
-            const resUbicaciones = await fetch(`${BACKEND_URL}/api/ubicaciones/${comunidad}`);
-            if (!resUbicaciones.ok) throw new Error(`Error al cargar ubicaciones fijas: ${resUbicaciones.status}`);
-            ubicacionesPredeterminadas = await resUbicaciones.json();
+            const res = await fetch(`${BACKEND_URL}/api/comunidad/${comunidad}`); // Nueva ruta
+            if (!res.ok) throw new Error(`Error al cargar datos de la comunidad: ${res.status}`);
+            const comunidadData = await res.json();
+            
+            // Extraer miembros
+            comunidadMiembros = comunidadData.miembros || [];
+            console.log("✅ Miembros de la comunidad cargados:", comunidadMiembros);
+
+            // Extraer ubicaciones fijas
+            ubicacionesPredeterminadas = comunidadData.ubicaciones_fijas || [];
             if (ubicacionesPredeterminadas.length > 0) {
                 ubicacionReferenciaComunidad = ubicacionesPredeterminadas[0]; 
                 console.log("✅ Ubicaciones fijas (puntos de interés) cargadas.");
             } else {
                 console.warn("⚠️ No hay ubicaciones de referencia para esta comunidad.");
             }
-        } catch (error) {
-            console.error("❌ Error en cargarUbicacionesFijas:", error.message);
-        }
-
-        // Cargar miembros de la comunidad para encontrar los datos del usuario actual
-        try {
-            const resMiembros = await fetch(`${BACKEND_URL}/api/miembros/${comunidad}`);
-            if (!resMiembros.ok) throw new Error(`Error al cargar miembros: ${resMiembros.status}`);
-            comunidadMiembros = await resMiembros.json();
-            console.log("✅ Miembros de la comunidad cargados:", comunidadMiembros);
 
             // ⭐ IMPORTANTE: Encontrar los datos registrados del usuario actual ⭐
             if (userData && userData.id) {
                 currentUserMemberData = comunidadMiembros.find(m => String(m.telegram_id) === String(userData.id));
                 if (currentUserMemberData) {
                     console.log("✅ Datos registrados del usuario actual encontrados:", currentUserMemberData);
-                    // Actualizar el statusMsg con la dirección registrada del usuario
-                    if (!toggleRealTime.checked && currentUserMemberData.direccion) {
-                         statusMsg.textContent = `📍 Tu dirección registrada: ${currentUserMemberData.direccion}`;
-                    }
                 } else {
                     console.warn("⚠️ Usuario actual no encontrado en la lista de miembros de la comunidad.");
                 }
             }
         } catch (error) {
-            console.error("❌ Error en cargarMiembrosComunidad:", error.message);
+            console.error("❌ Error en cargarDatosComunidad:", error.message);
+            statusMsg.textContent = "❌ No se pudieron cargar los datos de la comunidad.";
+            // Si no se cargan los datos, deshabilitar el botón de emergencia para evitar errores
+            boton.disabled = true;
+            boton.classList.remove('enabled');
+            return; // Detener la ejecución si hay un error crítico
         }
         // Actualizar el mensaje de estado inicial si es necesario
         updateStatusMessageBasedOnToggle();
     }
 
-    // Función para actualizar el mensaje de estado en la UI
+    // Función para actualizar el mensaje de estado en la UI (sin cambios)
     function updateStatusMessageBasedOnToggle() {
         if (toggleRealTime.checked) {
             statusMsg.textContent = "📍 Usando ubicación en tiempo real";
@@ -137,6 +133,14 @@ document.addEventListener('DOMContentLoaded', () => {
             alert("❌ Faltan datos necesarios");
             return;
         }
+        
+        // Asegurarse de que tenemos los datos del usuario antes de proceder
+        if (!currentUserMemberData && !ubicacionReferenciaComunidad) {
+            alert("❌ No se pudieron cargar tus datos o una ubicación de referencia. Intenta de nuevo.");
+            resetFormulario();
+            return;
+        }
+
 
         boton.disabled = true;
         boton.textContent = "Enviando...";
@@ -146,7 +150,7 @@ document.addEventListener('DOMContentLoaded', () => {
         let lonEnvio = null;
         let direccionEnvio = "Dirección no disponible";
 
-        // Determinar la dirección REGISTRADA del usuario, SIEMPRE que sea posible
+        // Determinar la dirección REGISTRADA del usuario como prioridad para la alerta
         if (currentUserMemberData && currentUserMemberData.direccion) {
             direccionEnvio = currentUserMemberData.direccion;
         } else if (ubicacionReferenciaComunidad && ubicacionReferenciaComunidad.direccion) {
@@ -169,7 +173,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 handleFallbackLocation(descripcion, userData, direccionEnvio);
             });
         } else {
-            // ⭐ Lógica para cuando el toggle NO está activado (o no hay GPS) ⭐
+            // Lógica para cuando el toggle NO está activado (o no hay GPS)
             if (currentUserMemberData && currentUserMemberData.geolocalizacion) {
                 latEnvio = currentUserMemberData.geolocalizacion.lat;
                 lonEnvio = currentUserMemberData.geolocalizacion.lon;
@@ -242,7 +246,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 tipo: "Alerta Roja Activada",
                 descripcion,
                 ubicacion: { lat, lon },
-                direccion: direccion, // ⭐ Esta 'direccion' ya está correctamente determinada ⭐
+                direccion: direccion,
                 comunidad: comunidadSeleccionada,
                 user_telegram: userTelegramData
             })
