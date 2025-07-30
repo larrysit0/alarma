@@ -11,8 +11,6 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     console.log("✅ Comunidad seleccionada:", comunidadSeleccionada);
 
-    let ubicacionesPredeterminadas = []; // Puntos de interés fijos de la comunidad (ej. parque, entrada)
-    let ubicacionReferenciaComunidad = null; // Primer punto de interés como fallback
     let userData = null; // Datos del usuario que activó la alarma
     let comunidadMiembros = []; // Lista de todos los miembros de la comunidad con sus datos
     let currentUserMemberData = null; // ⭐ DATOS REGISTRADOS DEL USUARIO ACTUAL ⭐
@@ -22,7 +20,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const statusMsg = document.getElementById('statusMsg');
     const toggleRealTime = document.getElementById('toggleRealTime');
 
-    // Paso 1: Obtener datos del usuario desde la URL (sin cambios)
+    // Paso 1: Obtener datos del usuario desde la URL
     const userIdFromUrl = urlParams.get('id');
     const userFirstNameFromUrl = urlParams.get('first_name');
 
@@ -48,27 +46,18 @@ document.addEventListener('DOMContentLoaded', () => {
         statusMsg.textContent = `👥 Comunidad detectada: ${comunidadSeleccionada.toUpperCase()}`;
     }
 
-    // ⭐⭐ CAMBIO CLAVE: Cargar TODOS los datos de la comunidad desde una única ruta ⭐⭐
+    // ⭐⭐ CAMBIO CLAVE: Cargar SOLO los miembros de la comunidad desde una única ruta ⭐⭐
     cargarDatosComunidad(comunidadSeleccionada);
 
     async function cargarDatosComunidad(comunidad) {
         try {
-            const res = await fetch(`${BACKEND_URL}/api/comunidad/${comunidad}`); // Nueva ruta
+            const res = await fetch(`${BACKEND_URL}/api/comunidad/${comunidad}`);
             if (!res.ok) throw new Error(`Error al cargar datos de la comunidad: ${res.status}`);
             const comunidadData = await res.json();
             
             // Extraer miembros
             comunidadMiembros = comunidadData.miembros || [];
             console.log("✅ Miembros de la comunidad cargados:", comunidadMiembros);
-
-            // Extraer ubicaciones fijas
-            ubicacionesPredeterminadas = comunidadData.ubicaciones_fijas || [];
-            if (ubicacionesPredeterminadas.length > 0) {
-                ubicacionReferenciaComunidad = ubicacionesPredeterminadas[0]; 
-                console.log("✅ Ubicaciones fijas (puntos de interés) cargadas.");
-            } else {
-                console.warn("⚠️ No hay ubicaciones de referencia para esta comunidad.");
-            }
 
             // ⭐ IMPORTANTE: Encontrar los datos registrados del usuario actual ⭐
             if (userData && userData.id) {
@@ -85,22 +74,19 @@ document.addEventListener('DOMContentLoaded', () => {
             // Si no se cargan los datos, deshabilitar el botón de emergencia para evitar errores
             boton.disabled = true;
             boton.classList.remove('enabled');
-            return; // Detener la ejecución si hay un error crítico
+            return;
         }
-        // Actualizar el mensaje de estado inicial si es necesario
         updateStatusMessageBasedOnToggle();
     }
 
-    // Función para actualizar el mensaje de estado en la UI (sin cambios)
+    // Función para actualizar el mensaje de estado en la UI (ajustada)
     function updateStatusMessageBasedOnToggle() {
         if (toggleRealTime.checked) {
             statusMsg.textContent = "📍 Usando ubicación en tiempo real";
         } else if (currentUserMemberData && currentUserMemberData.direccion) {
             statusMsg.textContent = `📍 Tu dirección registrada: ${currentUserMemberData.direccion}`;
-        } else if (ubicacionReferenciaComunidad) {
-            statusMsg.textContent = `📍 Usando ubicación de referencia: ${ubicacionReferenciaComunidad.nombre}`;
         } else {
-            statusMsg.textContent = "⏳ Esperando acción del usuario...";
+            statusMsg.textContent = "⚠️ Ubicación no disponible. Por favor, activa GPS.";
         }
     }
 
@@ -110,13 +96,13 @@ document.addEventListener('DOMContentLoaded', () => {
         if (texto.length >= 4 && texto.length <= 300) {
             boton.disabled = false;
             boton.classList.add('enabled');
-            statusMsg.textContent = "✅ Listo para enviar"; // Mensaje más genérico
-            updateStatusMessageBasedOnToggle(); // Asegurarse de que el mensaje de ubicación se mantenga
+            statusMsg.textContent = "✅ Listo para enviar";
+            updateStatusMessageBasedOnToggle();
         } else {
             boton.disabled = true;
             boton.classList.remove('enabled');
             statusMsg.textContent = "⏳ Esperando acción del usuario...";
-            updateStatusMessageBasedOnToggle(); // Asegurarse de que el mensaje de ubicación se mantenga
+            updateStatusMessageBasedOnToggle();
         }
     });
 
@@ -134,13 +120,12 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
         
-        // Asegurarse de que tenemos los datos del usuario antes de proceder
-        if (!currentUserMemberData && !ubicacionReferenciaComunidad) {
-            alert("❌ No se pudieron cargar tus datos o una ubicación de referencia. Intenta de nuevo.");
+        // Asegurarse de que tenemos los datos registrados del usuario o que se usará GPS
+        if (!currentUserMemberData && !toggleRealTime.checked) {
+            alert("❌ No se pudieron cargar tus datos de ubicación registrados. Por favor, activa la ubicación en tiempo real o asegúrate de tener una dirección registrada.");
             resetFormulario();
             return;
         }
-
 
         boton.disabled = true;
         boton.textContent = "Enviando...";
@@ -150,11 +135,9 @@ document.addEventListener('DOMContentLoaded', () => {
         let lonEnvio = null;
         let direccionEnvio = "Dirección no disponible";
 
-        // Determinar la dirección REGISTRADA del usuario como prioridad para la alerta
+        // PRIORIDAD: Obtener la dirección para el envío desde la dirección REGISTRADA del usuario
         if (currentUserMemberData && currentUserMemberData.direccion) {
             direccionEnvio = currentUserMemberData.direccion;
-        } else if (ubicacionReferenciaComunidad && ubicacionReferenciaComunidad.direccion) {
-            direccionEnvio = ubicacionReferenciaComunidad.direccion;
         }
 
 
@@ -163,61 +146,38 @@ document.addEventListener('DOMContentLoaded', () => {
             navigator.geolocation.getCurrentPosition(pos => {
                 latEnvio = pos.coords.latitude;
                 lonEnvio = pos.coords.longitude;
-                // La direcciónEnvio ya fue establecida con la dirección registrada del usuario o de referencia
+                // La direcciónEnvio ya fue establecida con la dirección registrada del usuario
                 console.log("✅ Ubicación obtenida (tiempo real). Llamando a enviarAlerta.");
                 enviarAlerta(descripcion, latEnvio, lonEnvio, direccionEnvio, userData);
             }, () => {
-                console.error("❌ Error al obtener ubicación en tiempo real. Cayendo a ubicación registrada/referencia.");
-                alert("❌ No se pudo obtener ubicación en tiempo real. Usando tu ubicación registrada o de referencia.");
-                // Fallback a la ubicación registrada del miembro o de referencia
-                handleFallbackLocation(descripcion, userData, direccionEnvio);
+                console.error("❌ Error al obtener ubicación en tiempo real. Cayendo a ubicación registrada si existe.");
+                alert("❌ No se pudo obtener ubicación en tiempo real. Usando tu ubicación registrada.");
+                handleFallbackLocation(descripcion, userData, direccionEnvio); // Llama a fallback
             });
         } else {
             // Lógica para cuando el toggle NO está activado (o no hay GPS)
-            if (currentUserMemberData && currentUserMemberData.geolocalizacion) {
-                latEnvio = currentUserMemberData.geolocalizacion.lat;
-                lonEnvio = currentUserMemberData.geolocalizacion.lon;
-                // La direcciónEnvio ya fue establecida con la dirección registrada del usuario
-                console.log("➡️ Usando ubicación registrada del miembro. Llamando a enviarAlerta.");
-                enviarAlerta(descripcion, latEnvio, lonEnvio, direccionEnvio, userData);
-            } else if (ubicacionReferenciaComunidad && ubicacionReferenciaComunidad.geolocalizacion) {
-                // Fallback a la ubicación de referencia de la comunidad
-                latEnvio = ubicacionReferenciaComunidad.geolocalizacion.lat;
-                lonEnvio = ubicacionReferenciaComunidad.geolocalizacion.lon;
-                direccionEnvio = ubicacionReferenciaComunidad.direccion || "Ubicación de referencia";
-                console.log("➡️ Usando ubicación de referencia de la comunidad. Llamando a enviarAlerta.");
-                enviarAlerta(descripcion, latEnvio, lonEnvio, direccionEnvio, userData);
-            } else {
-                console.error("❌ No se encontró ubicación válida (ni registrada ni de referencia).");
-                alert("❌ No se encontró una ubicación válida para enviar la alarma.");
-                resetFormulario();
-            }
+            // Se usa la ubicación registrada del miembro como principal
+            handleFallbackLocation(descripcion, userData, direccionEnvio);
         }
     });
 
-    // Función de fallback para geolocalización o si el usuario no tiene datos registrados
+    // Función de fallback para cuando no hay GPS o el toggle está desactivado
     function handleFallbackLocation(descripcion, userData, direccionFija) {
         let latEnvio = null;
         let lonEnvio = null;
-        let direccionEnvio = direccionFija; // Ya debería traer la dirección registrada/referencia
+        let direccionEnvio = direccionFija; // Ya debería traer la dirección registrada del miembro
 
         if (currentUserMemberData && currentUserMemberData.geolocalizacion) {
             latEnvio = currentUserMemberData.geolocalizacion.lat;
             lonEnvio = currentUserMemberData.geolocalizacion.lon;
-            direccionEnvio = currentUserMemberData.direccion || direccionFija;
+            direccionEnvio = currentUserMemberData.geolocalizacion.direccion || direccionFija;
             console.log("➡️ Fallback: Usando ubicación registrada del miembro.");
-        } else if (ubicacionReferenciaComunidad && ubicacionReferenciaComunidad.geolocalizacion) {
-            latEnvio = ubicacionReferenciaComunidad.geolocalizacion.lat;
-            lonEnvio = ubicacionReferenciaComunidad.geolocalizacion.lon;
-            direccionEnvio = ubicacionReferenciaComunidad.direccion || direccionFija;
-            console.log("➡️ Fallback: Usando ubicación de referencia de la comunidad.");
+            enviarAlerta(descripcion, latEnvio, lonEnvio, direccionEnvio, userData);
         } else {
-            console.error("❌ Fallback: No se encontró ubicación válida.");
-            alert("❌ No se encontró una ubicación válida para enviar la alarma.");
+            console.error("❌ Fallback: No se encontró ubicación válida (ni registrada ni en tiempo real).");
+            alert("❌ No se encontró una ubicación válida para enviar la alarma. Asegúrate de tener una dirección registrada o activa el GPS.");
             resetFormulario();
-            return;
         }
-        enviarAlerta(descripcion, latEnvio, lonEnvio, direccionEnvio, userData);
     }
 
 
@@ -275,6 +235,6 @@ document.addEventListener('DOMContentLoaded', () => {
         boton.textContent = "🚨 Enviar Alerta Roja";
         textarea.value = "";
         boton.classList.remove('enabled');
-        updateStatusMessageBasedOnToggle(); // Restablecer el mensaje de estado
+        updateStatusMessageBasedOnToggle();
     }
 });
