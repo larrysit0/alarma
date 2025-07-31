@@ -1,0 +1,10 @@
+{
+  "build": {
+    "builder": "NIXPACKS",
+    "buildCommand": "pip install -r requirements.txt",
+    "startCommand": "gunicorn --chdir /app servidor:app --bind 0.0.0.0:$PORT --timeout 120"
+  },
+  "deploy": {
+    "startCommand": "gunicorn --chdir /app servidor:app --bind 0.0.0.0:$PORT --timeout 120"
+  }
+}
