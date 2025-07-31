@@ -128,5 +128,4 @@ def send_telegram_message(chat_id, text, parse_mode='HTML'):
         print(f"❌ Error al enviar mensaje a Telegram {chat_id}: {e}")
         return None
 
-if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=os.getenv("PORT", 8000))
+
