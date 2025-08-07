@@ -1,5 +1,5 @@
 document.addEventListener('DOMContentLoaded', () => {
-    const BACKEND_URL = "https://alarma-production.up.railway.app"; // <--- CORREGIDO: Debes actualizar esta URL
+    const BACKEND_URL = "https://[TU-NUEVA-URL-DE-RAILWAY]";
 
     console.log("✅ Script cargado. Backend URL:", BACKEND_URL);
 
@@ -114,11 +114,8 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
         
-        if (!currentUserMemberData && !toggleRealTime.checked) {
-            alert("❌ No se pudieron cargar tus datos de ubicación registrados. Por favor, activa la ubicación en tiempo real o asegúrate de tener una dirección registrada.");
-            resetFormulario();
-            return;
-        }
+        // CORREGIDO: SE ELIMINÓ LA VALIDACIÓN DE currentUserMemberData
+        // Ahora se intenta obtener la ubicación de cualquier forma, sin importar si el usuario está en el JSON.
 
         boton.disabled = true;
         boton.textContent = "Enviando...";
@@ -162,8 +159,8 @@ document.addEventListener('DOMContentLoaded', () => {
             enviarAlerta(descripcion, latEnvio, lonEnvio, direccionEnvio, userData);
         } else {
             console.error("❌ Fallback: No se encontró ubicación válida (ni registrada ni en tiempo real).");
-            alert("❌ No se encontró una ubicación válida para enviar la alarma. Asegúrate de tener una dirección registrada o activa el GPS.");
-            resetFormulario();
+            // Se envía la alarma con la ubicación disponible, incluso si es nula
+            enviarAlerta(descripcion, latEnvio, lonEnvio, direccionEnvio, userData);
         }
     }
 
