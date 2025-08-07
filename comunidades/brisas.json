@@ -14,7 +14,7 @@
     {
       "nombre": "Larry ortiz",
       "telefono": "+51960661434",
-      "direccion": "Calle Secundaria 202 ",
+      "direccion": "Calle Secundaria 202",
       "geolocalizacion": {
         "lat": -12.0456,
         "lon": -77.0333
