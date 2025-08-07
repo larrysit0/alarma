@@ -5,16 +5,12 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Botón de Emergencia</title>
 
-  <!-- Estilos personalizados -->
   <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
 
-  <!-- Leaflet CSS si deseas incluir mapa más adelante -->
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.3/dist/leaflet.css" />
 
-  <!-- ✅ SDK de Telegram WebApp (necesario para obtener el ID del usuario) -->
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
 
-  <!-- Script JS diferido -->
   <script src="{{ url_for('static', filename='script.js') }}" defer></script>
 </head>
 <body>
@@ -25,10 +21,8 @@
 
     <p>Describe brevemente la emergencia:</p>
 
-    <!-- Descripción de la emergencia -->
     <textarea id="descripcion" placeholder="Escribe tu mensaje..." maxlength="300"></textarea>
 
-    <!-- Botón para activar ubicación en tiempo real -->
     <div class="toggle-container">
       <label class="toggle-switch">
         <input type="checkbox" id="toggleRealTime" />
@@ -37,10 +31,8 @@
       <p>Usar ubicación en tiempo real</p>
     </div>
 
-    <!-- Botón principal -->
     <button id="btnEmergencia" class="btn red" disabled>🚨 Enviar Alerta Roja</button>
 
-    <!-- Mensaje de estado -->
     <p class="status" id="statusMsg">⏳ Esperando acción del usuario...</p>
   </div>
 </body>
