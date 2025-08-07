@@ -1,5 +1,6 @@
 document.addEventListener('DOMContentLoaded', () => {
-    const BACKEND_URL = "https://alarma-production.up.railway.app";
+    const BACKEND_URL = "https://[TU-NUEVA-URL-DE-RAILWAY]"; // <--- CORREGIDO: Debes actualizar esta URL
+
     console.log("✅ Script cargado. Backend URL:", BACKEND_URL);
 
     const urlParams = new URLSearchParams(window.location.search);
@@ -11,16 +12,15 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     console.log("✅ Comunidad seleccionada:", comunidadSeleccionada);
 
-    let userData = null; // Datos del usuario que activó la alarma
-    let comunidadMiembros = []; // Lista de todos los miembros de la comunidad con sus datos
-    let currentUserMemberData = null; // ⭐ DATOS REGISTRADOS DEL USUARIO ACTUAL ⭐
+    let userData = null;
+    let comunidadMiembros = [];
+    let currentUserMemberData = null;
 
     const textarea = document.getElementById('descripcion');
     const boton = document.getElementById('btnEmergencia');
     const statusMsg = document.getElementById('statusMsg');
     const toggleRealTime = document.getElementById('toggleRealTime');
 
-    // Paso 1: Obtener datos del usuario desde la URL
     const userIdFromUrl = urlParams.get('id');
     const userFirstNameFromUrl = urlParams.get('first_name');
 
@@ -46,7 +46,6 @@ document.addEventListener('DOMContentLoaded', () => {
         statusMsg.textContent = `👥 Comunidad detectada: ${comunidadSeleccionada.toUpperCase()}`;
     }
 
-    // ⭐⭐ CAMBIO CLAVE: Cargar SOLO los miembros de la comunidad desde una única ruta ⭐⭐
     cargarDatosComunidad(comunidadSeleccionada);
 
     async function cargarDatosComunidad(comunidad) {
@@ -55,11 +54,9 @@ document.addEventListener('DOMContentLoaded', () => {
             if (!res.ok) throw new Error(`Error al cargar datos de la comunidad: ${res.status}`);
             const comunidadData = await res.json();
             
-            // Extraer miembros
             comunidadMiembros = comunidadData.miembros || [];
             console.log("✅ Miembros de la comunidad cargados:", comunidadMiembros);
 
-            // ⭐ IMPORTANTE: Encontrar los datos registrados del usuario actual ⭐
             if (userData && userData.id) {
                 currentUserMemberData = comunidadMiembros.find(m => String(m.telegram_id) === String(userData.id));
                 if (currentUserMemberData) {
@@ -71,7 +68,6 @@ document.addEventListener('DOMContentLoaded', () => {
         } catch (error) {
             console.error("❌ Error en cargarDatosComunidad:", error.message);
             statusMsg.textContent = "❌ No se pudieron cargar los datos de la comunidad.";
-            // Si no se cargan los datos, deshabilitar el botón de emergencia para evitar errores
             boton.disabled = true;
             boton.classList.remove('enabled');
             return;
@@ -79,7 +75,6 @@ document.addEventListener('DOMContentLoaded', () => {
         updateStatusMessageBasedOnToggle();
     }
 
-    // Función para actualizar el mensaje de estado en la UI (ajustada)
     function updateStatusMessageBasedOnToggle() {
         if (toggleRealTime.checked) {
             statusMsg.textContent = "📍 Usando ubicación en tiempo real";
@@ -89,7 +84,6 @@ document.addEventListener('DOMContentLoaded', () => {
             statusMsg.textContent = "⚠️ Ubicación no disponible. Por favor, activa GPS.";
         }
     }
-
 
     textarea.addEventListener('input', () => {
         const texto = textarea.value.trim();
@@ -120,7 +114,6 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
         
-        // Asegurarse de que tenemos los datos registrados del usuario o que se usará GPS
         if (!currentUserMemberData && !toggleRealTime.checked) {
             alert("❌ No se pudieron cargar tus datos de ubicación registrados. Por favor, activa la ubicación en tiempo real o asegúrate de tener una dirección registrada.");
             resetFormulario();
@@ -135,37 +128,31 @@ document.addEventListener('DOMContentLoaded', () => {
         let lonEnvio = null;
         let direccionEnvio = "Dirección no disponible";
 
-        // PRIORIDAD: Obtener la dirección para el envío desde la dirección REGISTRADA del usuario
         if (currentUserMemberData && currentUserMemberData.direccion) {
             direccionEnvio = currentUserMemberData.direccion;
         }
-
 
         if (toggleRealTime.checked && navigator.geolocation) {
             console.log("➡️ Solicitando ubicación en tiempo real...");
             navigator.geolocation.getCurrentPosition(pos => {
                 latEnvio = pos.coords.latitude;
                 lonEnvio = pos.coords.longitude;
-                // La direcciónEnvio ya fue establecida con la dirección registrada del usuario
                 console.log("✅ Ubicación obtenida (tiempo real). Llamando a enviarAlerta.");
                 enviarAlerta(descripcion, latEnvio, lonEnvio, direccionEnvio, userData);
             }, () => {
                 console.error("❌ Error al obtener ubicación en tiempo real. Cayendo a ubicación registrada si existe.");
                 alert("❌ No se pudo obtener ubicación en tiempo real. Usando tu ubicación registrada.");
-                handleFallbackLocation(descripcion, userData, direccionEnvio); // Llama a fallback
+                handleFallbackLocation(descripcion, userData, direccionEnvio);
             });
         } else {
-            // Lógica para cuando el toggle NO está activado (o no hay GPS)
-            // Se usa la ubicación registrada del miembro como principal
             handleFallbackLocation(descripcion, userData, direccionEnvio);
         }
     });
 
-    // Función de fallback para cuando no hay GPS o el toggle está desactivado
     function handleFallbackLocation(descripcion, userData, direccionFija) {
         let latEnvio = null;
         let lonEnvio = null;
-        let direccionEnvio = direccionFija; // Ya debería traer la dirección registrada del miembro
+        let direccionEnvio = direccionFija;
 
         if (currentUserMemberData && currentUserMemberData.geolocalizacion) {
             latEnvio = currentUserMemberData.geolocalizacion.lat;
@@ -179,7 +166,6 @@ document.addEventListener('DOMContentLoaded', () => {
             resetFormulario();
         }
     }
-
 
     function enviarAlerta(descripcion, lat, lon, direccion, userData) {
         console.log("➡️ ENVIAR ALERTA: La función ha sido llamada.");
