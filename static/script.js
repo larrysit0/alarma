@@ -1,5 +1,5 @@
 document.addEventListener('DOMContentLoaded', () => {
-    const BACKEND_URL = "https://[TU-NUEVA-URL-DE-RAILWAY]"; // <--- CORREGIDO: Debes actualizar esta URL
+    const BACKEND_URL = "https://alarma-production.up.railway.app"; // <--- CORREGIDO: Debes actualizar esta URL
 
     console.log("✅ Script cargado. Backend URL:", BACKEND_URL);
 
