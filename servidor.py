@@ -115,7 +115,7 @@ def handle_alert():
 
     miembros_a_notificar = [m for m in miembros if m.get('alertas_activadas') and str(m.get('telegram_id')) != str(user_id)]
     
-    # 🔔 LÓGICA DE NOTIFICACIONES TELEGRAM
+    # 🔔 LÓGICA DE NOTIFICACIONES TELEGRAM (Ya no bloquea las llamadas)
     if miembros_a_notificar:
         print("--- DEBUG: Enviando alertas privadas a miembros de la comunidad. ---")
         for miembro in miembros_a_notificar:
@@ -134,7 +134,7 @@ def handle_alert():
             )
             send_telegram_message(id_miembro, mensaje_privado)
     
-    # 📞 LÓGICA DE LLAMADAS TELEFÓNICAS
+    # 📞 LÓGICA DE LLAMADAS TELEFÓNICAS (Ahora es independiente)
     if twilio_client and TWILIO_PHONE_NUMBER:
         print("--- DEBUG: Iniciando llamadas telefónicas. ---")
         for miembro in miembros_a_notificar:
