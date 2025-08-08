@@ -4,6 +4,7 @@ import json
 from flask import Flask, request, jsonify, send_from_directory, render_template
 from flask_cors import CORS
 from twilio.rest import Client
+from twilio.twiml.voice_response import VoiceResponse
 
 print("--- DEBUG: servidor.py: INICIO DEL SCRIPT ---")
 
@@ -112,7 +113,7 @@ def handle_alert():
     user_id = user_telegram.get('id', 'N/A')
     user_mention = f"<a href='tg://user?id={user_id}'>{user_name}</a>"
 
-    miembros_a_notificar = [m for m in miembros if m.get('alertas_activadas') and m.get('telegram_id') != user_id]
+    miembros_a_notificar = [m for m in miembros if m.get('alertas_activadas') and str(m.get('telegram_id')) != str(user_id)]
     
     # 🔔 LÓGICA DE NOTIFICACIONES TELEGRAM
     if miembros_a_notificar:
@@ -159,24 +160,25 @@ def handle_alert():
     print(f"--- DEBUG: Finalizando handle_alert. Status: Alerta enviada a la comunidad {comunidad_nombre} ---")
     return jsonify({"status": f"Alerta enviada a la comunidad {comunidad_nombre}"})
 
-# 📞 NUEVA FUNCIÓN PARA HACER LLAMADAS
+
+# 📞 FUNCIÓN PARA HACER LLAMADAS
 def make_phone_call(to_number, comunidad, user, tipo, descripcion):
     global twilio_client, TWILIO_PHONE_NUMBER
     
-    call_text = (
-        f"Alerta de emergencia en la comunidad {comunidad}. "
-        f"El usuario {user} ha activado una alerta roja. "
-        f"El tipo de emergencia es {tipo} con la siguiente descripcion: {descripcion}."
-    )
+    mensaje_voz = "Emergencia, revisa tu celular."
     
-    twiml_url = f"http://twimlets.com/echo?Twiml=%3CResponse%3E%3CSay%20voice%3D%22woman%22%20language%3D%22es-ES%22%3E{requests.utils.quote(call_text)}%3C%2FSay%3E%3C%2FResponse%3E"
-
-    call = twilio_client.calls.create(
-        twiml=f'<Response><Say language="es-ES">Una alerta de emergencia ha sido activada en la comunidad {comunidad}.</Say></Response>',
-        to=to_number,
-        from_=TWILIO_PHONE_NUMBER
-    )
-    print(f"--- DEBUG: Llamada iniciada con SID: {call.sid} ---")
+    response = VoiceResponse()
+    response.say(mensaje_voz, voice='woman', language='es-ES')
+    
+    try:
+        call = twilio_client.calls.create(
+            twiml=str(response),
+            to=to_number,
+            from_=TWILIO_PHONE_NUMBER
+        )
+        print(f"--- DEBUG: Llamada iniciada con SID: {call.sid} ---")
+    except Exception as e:
+        print(f"--- DEBUG: ERROR al hacer llamada a {to_number}: {e} ---")
 
 # 🔔 FUNCIONES DE TELEGRAM
 def send_telegram_message(chat_id, text, parse_mode='HTML'):
@@ -195,6 +197,72 @@ def send_telegram_message(chat_id, text, parse_mode='HTML'):
     except requests.exceptions.RequestException as e:
         print(f"--- DEBUG: ERROR al enviar mensaje a Telegram {chat_id}: {e} ---")
         return None
+
+# 🚀 FUNCIONES DE WEBHOOKS
+@app.route('/webhook', methods=['POST'])
+def webhook():
+    print("--- DEBUG: Endpoint /webhook fue accedido. ---")
+    try:
+        update = request.json
+        print("--- DEBUG: Update de Telegram recibido:", json.dumps(update, indent=2))
+        
+        message = update.get('message')
+        if message:
+            chat_id = message['chat']['id']
+            text = message.get('text', '')
+            print(f"--- DEBUG: Mensaje procesado. chat_id: {chat_id}, texto: '{text}' ---")
+            
+            # ✅ LÍNEA MODIFICADA: Ahora se busca el texto "MIREGISTRO" en mayúsculas
+            if text == 'MIREGISTRO':
+                print(f"--- DEBUG: Comando '{text}' detectado. Preparando respuesta... ---")
+                
+                webapp_url = "https://alarma-production.up.railway.app"
+                
+                payload = {
+                    "chat_id": chat_id,
+                    "text": "Presiona el botón para obtener tu ID de Telegram.",
+                    "reply_markup": {
+                        "inline_keyboard": [
+                            [
+                                {
+                                    "text": "Obtener mi ID",
+                                    "web_app": { "url": webapp_url }
+                                }
+                            ]
+                        ]
+                    }
+                }
+                
+                send_telegram_message(chat_id, payload)
+            else:
+                print(f"--- DEBUG: No se detectó un comando válido. Ignorando mensaje. ---")
+        else:
+            print("--- DEBUG: La actualización no contiene un mensaje de chat. ---")
+    except Exception as e:
+        print(f"--- DEBUG: ERROR GENERAL en el webhook: {e} ---")
+    
+    return jsonify({"status": "ok"}), 200
+
+# 🚀 FUNCIONES DE REGISTRO
+@app.route('/api/register', methods=['POST'])
+def register_id():
+    print("--- DEBUG: Endpoint /api/register fue accedido. ---")
+    try:
+        data = request.json
+        telegram_id = data.get('telegram_id')
+        user_info = data.get('user_info', {})
+        
+        if telegram_id:
+            print(f"--- DEBUG: ID de Telegram recibido: {telegram_id} ---")
+            print(f"--- DEBUG: Información de usuario: {user_info} ---")
+            return jsonify({"status": "ID recibido y registrado."}), 200
+        else:
+            print("--- DEBUG: Error: No se recibió ID de Telegram. ---")
+            return jsonify({"error": "ID no proporcionado"}), 400
+    except Exception as e:
+        print(f"--- DEBUG: ERROR GENERAL en /api/register: {e} ---")
+        return jsonify({"error": "Error interno del servidor"}), 500
+
 
 if __name__ == '__main__':
     port = int(os.environ.get("PORT", 5000))
