@@ -85,7 +85,6 @@ def send_telegram_message(chat_id, text, reply_markup=None, parse_mode='HTML'):
         "parse_mode": parse_mode
     }
     if reply_markup:
-        # Aquí se convierte el objeto de ReplyMarkup a su representación JSON si es necesario
         payload["reply_markup"] = reply_markup.to_json()
     try:
         response = requests.post(url, json=payload)
@@ -210,9 +209,9 @@ def register_id():
         print(f"--- ERROR GENERAL en /api/register: {e} ---")
         return jsonify({"error": "Error interno del servidor"}), 500
 
-# --- RUTA DEL WEBHOOK ---
+# --- RUTA DEL WEBHOOK (ahora con async/await) ---
 @app.route(f"/{TELEGRAM_BOT_TOKEN}", methods=["POST"])
-def webhook():
+async def webhook():
     if request.method == "POST":
         update = Update.de_json(request.get_json(force=True), bot)
         
@@ -234,7 +233,7 @@ def webhook():
             reply_markup = InlineKeyboardMarkup([[InlineKeyboardButton("Obtener mi ID", web_app=WebAppInfo(url=webapp_url))]])
             
             try:
-                bot.send_message(
+                await bot.send_message(
                     chat_id, 
                     "Presiona el botón para obtener tu ID de Telegram y registrar tu interacción con el bot.", 
                     reply_markup=reply_markup
@@ -256,7 +255,7 @@ def webhook():
             reply_markup = InlineKeyboardMarkup([[InlineKeyboardButton("🚨🚨 ABRIR ALARMA VECINAL🚨🚨", web_app=WebAppInfo(url=url_webapp))]])
             
             try:
-                bot.send_message(
+                await bot.send_message(
                     chat_id, 
                     f"📣 VECINOS {nombre_comunidad.upper()}", 
                     reply_markup=reply_markup
@@ -272,7 +271,7 @@ def webhook():
                 "Para activar una alarma en tu comunidad, escribe `SOS` en el grupo correspondiente."
             )
             try:
-                bot.send_message(chat_id, welcome_message)
+                await bot.send_message(chat_id, welcome_message)
             except TelegramError as e:
                 print(f"--- ERROR al enviar mensaje de bienvenida: {e} ---")
 
