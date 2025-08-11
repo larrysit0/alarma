@@ -209,7 +209,7 @@ def register_id():
         print(f"--- ERROR GENERAL en /api/register: {e} ---")
         return jsonify({"error": "Error interno del servidor"}), 500
 
-# --- RUTA DEL WEBHOOK (ahora con async/await) ---
+# --- RUTA DEL WEBHOOK (ahora con async/await y el botón corregido) ---
 @app.route(f"/{TELEGRAM_BOT_TOKEN}", methods=["POST"])
 async def webhook():
     if request.method == "POST":
@@ -252,6 +252,7 @@ async def webhook():
             
             url_webapp = f"{WEBAPP_URL}/?comunidad={nombre_comunidad}&id={user_id}&first_name={user_first_name}&last_name={user_last_name}&username={user_username}"
             
+            # Línea corregida para el botón de la web app
             reply_markup = InlineKeyboardMarkup([[InlineKeyboardButton("🚨🚨 ABRIR ALARMA VECINAL🚨🚨", web_app=WebAppInfo(url=url_webapp))]])
             
             try:
