@@ -5,7 +5,7 @@ from flask import Flask, request, jsonify, send_from_directory, render_template
 from flask_cors import CORS
 from twilio.rest import Client
 from twilio.twiml.voice_response import VoiceResponse
-from telegram import Update, Bot, InlineKeyboardMarkup, InlineKeyboardButton
+from telegram import Update, Bot, InlineKeyboardMarkup, InlineKeyboardButton, WebAppInfo
 from telegram.error import TelegramError
 
 print("--- INICIO DEL SCRIPT ---")
@@ -85,7 +85,8 @@ def send_telegram_message(chat_id, text, reply_markup=None, parse_mode='HTML'):
         "parse_mode": parse_mode
     }
     if reply_markup:
-        payload["reply_markup"] = reply_markup
+        # Aquí se convierte el objeto de ReplyMarkup a su representación JSON si es necesario
+        payload["reply_markup"] = reply_markup.to_json()
     try:
         response = requests.post(url, json=payload)
         response.raise_for_status()
@@ -142,7 +143,7 @@ def handle_alert():
 
     lat = data.get('ubicacion', {}).get('lat')
     lon = data.get('ubicacion', {}).get('lon')
-    map_link = f"https://maps.google.com/?q={lat},{lon}" if lat and lon else "Ubicación no disponible"
+    map_link = f"https://www.google.com/maps/place/{lat},{lon}" if lat and lon else "Ubicación no disponible"
     user_id = user_telegram.get('id', 'N/A')
     user_mention = f"<a href='tg://user?id={user_id}'>{user_name}</a>"
     
@@ -209,13 +210,13 @@ def register_id():
         print(f"--- ERROR GENERAL en /api/register: {e} ---")
         return jsonify({"error": "Error interno del servidor"}), 500
 
-# --- NUEVA RUTA DEL WEBHOOK ---
+# --- RUTA DEL WEBHOOK ---
 @app.route(f"/{TELEGRAM_BOT_TOKEN}", methods=["POST"])
 def webhook():
     if request.method == "POST":
         update = Update.de_json(request.get_json(force=True), bot)
         
-        message = update.message or update.edited_message
+        message = update.message
         if not message:
             return "ok"
 
@@ -252,7 +253,7 @@ def webhook():
             
             url_webapp = f"{WEBAPP_URL}/?comunidad={nombre_comunidad}&id={user_id}&first_name={user_first_name}&last_name={user_last_name}&username={user_username}"
             
-            reply_markup = InlineKeyboardMarkup([[InlineKeyboardButton("🚨🚨 ABRIR ALARMA VECINAL🚨🚨", url=url_webapp)]])
+            reply_markup = InlineKeyboardMarkup([[InlineKeyboardButton("🚨🚨 ABRIR ALARMA VECINAL🚨🚨", web_app=WebAppInfo(url=url_webapp))]])
             
             try:
                 bot.send_message(
@@ -279,6 +280,5 @@ def webhook():
 
 # --- MAIN ---
 if __name__ == '__main__':
-    # Se elimina el hilo de get_updates_and_process
     port = int(os.environ.get("PORT", 5000))
     app.run(host='0.0.0.0', port=port)
