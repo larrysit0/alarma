@@ -209,7 +209,7 @@ def register_id():
         print(f"--- ERROR GENERAL en /api/register: {e} ---")
         return jsonify({"error": "Error interno del servidor"}), 500
 
-# --- RUTA DEL WEBHOOK (ahora con async/await y el botón corregido) ---
+# --- RUTA DEL WEBHOOK (con async/await y el botón corregido para grupos) ---
 @app.route(f"/{TELEGRAM_BOT_TOKEN}", methods=["POST"])
 async def webhook():
     if request.method == "POST":
@@ -245,25 +245,32 @@ async def webhook():
         elif text == "SOS" and chat_id in COMUNIDADES_CHATS:
             print(f"--- Comando 'SOS' detectado. Enviando botón de emergencia. ---")
             nombre_comunidad = COMUNIDADES_CHATS.get(chat_id)
-            user_id = user_data.id
-            user_first_name = user_data.first_name if user_data.first_name else ''
-            user_last_name = user_data.last_name if user_data.last_name else ''
-            user_username = user_data.username if user_data.username else ''
             
-            url_webapp = f"{WEBAPP_URL}/?comunidad={nombre_comunidad}&id={user_id}&first_name={user_first_name}&last_name={user_last_name}&username={user_username}"
+            # --- CORRECCIÓN: Usar un botón URL para redirigir al usuario al chat privado ---
+            try:
+                bot_info = await bot.get_me()
+                bot_username = bot_info.username
+                url_to_private_chat = f"https://t.me/{bot_username}"
+            except TelegramError as e:
+                print(f"--- ERROR al obtener información del bot: {e} ---")
+                return "ok"
+
+            message_text = (
+                f"📣 VECINOS {nombre_comunidad.upper()}, la alarma debe ser activada en un chat privado.\n"
+                f"Por favor, pulsa el botón para iniciar una conversación con el bot y activar la alarma."
+            )
             
-            # Línea corregida para el botón de la web app
-            reply_markup = InlineKeyboardMarkup([[InlineKeyboardButton("🚨🚨 ABRIR ALARMA VECINAL🚨🚨", web_app=WebAppInfo(url=url_webapp))]])
-            
+            reply_markup = InlineKeyboardMarkup([[InlineKeyboardButton("🚨 Activar Alarma en Privado", url=url_to_private_chat)]])
+
             try:
                 await bot.send_message(
                     chat_id, 
-                    f"📣 VECINOS {nombre_comunidad.upper()}", 
+                    message_text,
                     reply_markup=reply_markup
                 )
             except TelegramError as e:
                 print(f"--- ERROR al enviar mensaje de emergencia: {e} ---")
-
+                
         # Mensaje de bienvenida en chat privado
         elif text == "/START" and chat_type == "private":
             welcome_message = (
