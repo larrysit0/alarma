@@ -1,12 +1,12 @@
 import os
 import requests
 import json
-import time
-from threading import Thread
 from flask import Flask, request, jsonify, send_from_directory, render_template
 from flask_cors import CORS
 from twilio.rest import Client
 from twilio.twiml.voice_response import VoiceResponse
+from telegram import Update, Bot, InlineKeyboardMarkup, InlineKeyboardButton
+from telegram.error import TelegramError
 
 print("--- INICIO DEL SCRIPT ---")
 
@@ -40,13 +40,13 @@ else:
     twilio_client = None
     print("--- ADVERTENCIA: Variables de Twilio NO configuradas. Las llamadas no funcionarán. ---")
 
-COMUNIDADES_DIR = 'comunidades'
-last_update_id = None
+# Instancia del bot para usar en el webhook
+bot = Bot(TELEGRAM_BOT_TOKEN)
 
 # --- FUNCIONES AUXILIARES ---
 
 def load_community_json(comunidad_nombre):
-    filepath = os.path.join(COMUNIDADES_DIR, f"{comunidad_nombre.lower()}.json")
+    filepath = os.path.join('comunidades', f"{comunidad_nombre.lower()}.json")
     if not os.path.exists(filepath):
         print(f"--- Archivo JSON NO encontrado: {filepath} ---")
         return None
@@ -202,8 +202,6 @@ def register_id():
             print(f"--- DEBUG: ID de Telegram recibido para registro: {telegram_id} ---")
             print(f"--- DEBUG: Información de usuario: {user_info} ---")
             
-            # Aquí podrías guardar la información en una base de datos o archivo JSON
-            
             return jsonify({"status": "ID recibido y registrado."}), 200
         else:
             return jsonify({"error": "ID no proporcionado"}), 400
@@ -211,95 +209,76 @@ def register_id():
         print(f"--- ERROR GENERAL en /api/register: {e} ---")
         return jsonify({"error": "Error interno del servidor"}), 500
 
-
-def get_updates_and_process():
-    """Función para obtener y procesar actualizaciones de Telegram en un hilo separado."""
-    global last_update_id
-    while True:
-        url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/getUpdates"
-        params = {"timeout": 30}
-        if last_update_id:
-            params["offset"] = last_update_id
+# --- NUEVA RUTA DEL WEBHOOK ---
+@app.route(f"/{TELEGRAM_BOT_TOKEN}", methods=["POST"])
+def webhook():
+    if request.method == "POST":
+        update = Update.de_json(request.get_json(force=True), bot)
         
-        try:
-            response = requests.get(url, params=params)
-            response.raise_for_status()
-            data = response.json()
-        except requests.exceptions.RequestException as e:
-            print(f"--- ERROR al obtener actualizaciones de Telegram: {e} ---")
-            time.sleep(5)
-            continue
+        message = update.message or update.edited_message
+        if not message:
+            return "ok"
 
-        for update in data.get("result", []):
-            last_update_id = update["update_id"] + 1
-            message = update.get("message") or update.get("edited_message")
-            if not message:
-                continue
+        text = message.text.upper().strip() if message.text else ""
+        chat_id = str(message.chat_id)
+        chat_type = message.chat.type
+        user_data = message.from_user
+        
+        print(f"📥 Nuevo mensaje de @{user_data.username} en chat {chat_id} ({chat_type}): {text}")
 
-            # --- LA ÚNICA MODIFICACIÓN CLAVE ESTÁ AQUÍ ---
-            # Ahora el bot escucha el texto del mensaje y lo compara directamente
-            text = message.get("text", "").upper().strip() # .strip() para eliminar espacios en blanco
-            chat = message.get("chat", {})
-            chat_id = str(chat.get("id"))
-            chat_type = chat.get("type")
-            user_data = message.get('from', {})
+        # Manejar el comando de registro en chat privado
+        if text == "MIREGISTRO" and chat_type == "private":
+            print(f"--- Comando 'MIREGISTRO' detectado. Enviando botón de registro. ---")
+            webapp_url = f"{WEBAPP_URL}/register"
+            reply_markup = InlineKeyboardMarkup([[InlineKeyboardButton("Obtener mi ID", web_app=WebAppInfo(url=webapp_url))]])
             
-            print(f"📥 Nuevo mensaje de @{user_data.get('username')} en chat {chat_id} ({chat_type}): {text}")
-
-            # Manejar el comando de registro en chat privado
-            if text == "MIREGISTRO" and chat_type == "private":
-                print(f"--- Comando 'MIREGISTRO' detectado. Enviando botón de registro. ---")
-                webapp_url = f"{WEBAPP_URL}/register"
-                reply_markup = {
-                    "inline_keyboard": [[{
-                        "text": "Obtener mi ID",
-                        "web_app": { "url": webapp_url }
-                    }]]
-                }
-                send_telegram_message(
+            try:
+                bot.send_message(
                     chat_id, 
                     "Presiona el botón para obtener tu ID de Telegram y registrar tu interacción con el bot.", 
-                    reply_markup=json.dumps(reply_markup),
-                    parse_mode=None
+                    reply_markup=reply_markup
                 )
+            except TelegramError as e:
+                print(f"--- ERROR al enviar mensaje de registro: {e} ---")
+
+        # Manejar la palabra 'SOS' en chat de grupo
+        elif text == "SOS" and chat_id in COMUNIDADES_CHATS:
+            print(f"--- Comando 'SOS' detectado. Enviando botón de emergencia. ---")
+            nombre_comunidad = COMUNIDADES_CHATS.get(chat_id)
+            user_id = user_data.id
+            user_first_name = user_data.first_name if user_data.first_name else ''
+            user_last_name = user_data.last_name if user_data.last_name else ''
+            user_username = user_data.username if user_data.username else ''
             
-            # Manejar la palabra 'SOS' en chat de grupo
-            elif text == "SOS" and chat_id in COMUNIDADES_CHATS:
-                print(f"--- Comando 'SOS' detectado. Enviando botón de emergencia. ---")
-                nombre_comunidad = COMUNIDADES_CHATS[chat_id]
-                user_id = user_data.get('id')
-                user_first_name = user_data.get('first_name', '')
-                user_last_name = user_data.get('last_name', '')
-                user_username = user_data.get('username', '')
-                
-                url_webapp = f"{WEBAPP_URL}/?comunidad={nombre_comunidad}&id={user_id}&first_name={user_first_name}&last_name={user_last_name}&username={user_username}"
-                
-                reply_markup = {
-                    "inline_keyboard": [[{
-                        "text": "🚨🚨 ABRIR ALARMA VECINAL🚨🚨",
-                        "web_app": { "url": url_webapp }
-                    }]]
-                }
-                send_telegram_message(
+            url_webapp = f"{WEBAPP_URL}/?comunidad={nombre_comunidad}&id={user_id}&first_name={user_first_name}&last_name={user_last_name}&username={user_username}"
+            
+            reply_markup = InlineKeyboardMarkup([[InlineKeyboardButton("🚨🚨 ABRIR ALARMA VECINAL🚨🚨", url=url_webapp)]])
+            
+            try:
+                bot.send_message(
                     chat_id, 
                     f"📣 VECINOS {nombre_comunidad.upper()}", 
-                    reply_markup=json.dumps(reply_markup),
-                    parse_mode=None
+                    reply_markup=reply_markup
                 )
-            
-            # Mensaje de bienvenida en chat privado
-            elif text == "/START" and chat_type == "private":
-                welcome_message = (
-                    "👋 ¡Hola! Soy el bot de alarmas vecinales. Para registrar tu interacción y poder recibir llamadas de emergencia, "
-                    "escribe el comando `MIREGISTRO` en este chat. "
-                    "Para activar una alarma en tu comunidad, escribe `SOS` en el grupo correspondiente."
-                )
-                send_telegram_message(chat_id, welcome_message, parse_mode=None)
+            except TelegramError as e:
+                print(f"--- ERROR al enviar mensaje de emergencia: {e} ---")
 
-        time.sleep(2)
+        # Mensaje de bienvenida en chat privado
+        elif text == "/START" and chat_type == "private":
+            welcome_message = (
+                "👋 ¡Hola! Soy el bot de alarmas vecinales. Para registrar tu interacción y poder recibir llamadas de emergencia, "
+                "escribe el comando `MIREGISTRO` en este chat. "
+                "Para activar una alarma en tu comunidad, escribe `SOS` en el grupo correspondiente."
+            )
+            try:
+                bot.send_message(chat_id, welcome_message)
+            except TelegramError as e:
+                print(f"--- ERROR al enviar mensaje de bienvenida: {e} ---")
 
+    return "ok"
+
+# --- MAIN ---
 if __name__ == '__main__':
+    # Se elimina el hilo de get_updates_and_process
     port = int(os.environ.get("PORT", 5000))
-    thread = Thread(target=get_updates_and_process, daemon=True)
-    thread.start()
     app.run(host='0.0.0.0', port=port)
