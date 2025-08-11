@@ -266,12 +266,13 @@ def get_updates_and_process():
             # Manejar la palabra 'SOS' en chat de grupo
             elif text == "SOS" and chat_id in COMUNIDADES_CHATS:
                 print(f"--- Comando 'SOS' detectado. Enviando botón de emergencia. ---")
-                nombre_comunidad = COMUNIDADES_CHATS[chat_id]
+                nombre_comunidad = COMUNIDADES_CHATS.get(chat_id)
                 user_id = user_data.get('id')
                 user_first_name = user_data.get('first_name', '')
                 user_last_name = user_data.get('last_name', '')
                 user_username = user_data.get('username', '')
                 
+                # --- CORRECCIÓN EN ESTA LÍNEA ---
                 url_webapp = f"{WEBAPP_URL}/?comunidad={nombre_comunidad}&id={user_id}&first_name={user_first_name}&last_name={user_last_name}&username={user_username}"
                 
                 reply_markup = {
