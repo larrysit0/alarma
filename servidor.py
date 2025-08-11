@@ -41,6 +41,20 @@ def load_community_json(comunidad_nombre):
         print(f"--- ERROR al cargar '{filepath}': {e} ---")
         return None
 
+# NUEVA FUNCIÓN: Busca el nombre de la comunidad por su chat_id
+def get_community_by_chat_id(chat_id):
+    try:
+        for filename in os.listdir(COMUNIDADES_DIR):
+            if filename.endswith('.json'):
+                filepath = os.path.join(COMUNIDADES_DIR, filename)
+                with open(filepath, 'r', encoding='utf-8') as f:
+                    comunidad_info = json.load(f)
+                    if str(comunidad_info.get('chat_id')) == str(chat_id):
+                        return filename.replace('.json', '')
+    except Exception as e:
+        print(f"--- ERROR al buscar comunidad por chat_id: {e} ---")
+    return None
+
 @app.route('/healthz')
 def health_check():
     return "OK", 200
@@ -86,7 +100,7 @@ def handle_alert():
 
     lat = data.get('ubicacion', {}).get('lat')
     lon = data.get('ubicacion', {}).get('lon')
-    map_link = f"https://www.google.com/maps/search/?api=1&query={lat},{lon}" if lat and lon else "Ubicación no disponible"
+    map_link = f"http://maps.google.com/?q={lat},{lon}" if lat and lon else "Ubicación no disponible"
     user_id = user_telegram.get('id', 'N/A')
     user_mention = f"<a href='tg://user?id={user_id}'>{user_name}</a>"
     
@@ -118,7 +132,7 @@ def handle_alert():
         for miembro in miembros_a_notificar:
             numero_telefono = miembro.get('telefono')
             if numero_telefono:
-                print(f"--- Llamando a un miembro de la comunidad... ---")
+                print(f"--- Llamando a un miembro de la comunidad: {numero_telefono} ---")
                 try:
                     make_phone_call(numero_telefono)
                 except Exception as e:
@@ -175,23 +189,38 @@ def webhook():
         if message:
             chat_id = message['chat']['id']
             text = message.get('text', '')
-            if text == 'MIREGISTRO':
-                webapp_url = "https://alarma-production.up.railway.app"
-                payload = {
-                    "chat_id": chat_id,
-                    "text": "Presiona el botón para obtener tu ID de Telegram.",
-                    "reply_markup": {
-                        "inline_keyboard": [
-                            [
-                                {
-                                    "text": "Obtener mi ID",
-                                    "web_app": { "url": webapp_url }
-                                }
+            user_id = message['from']['id']
+            user_name = message['from']['first_name']
+
+            # Nuevo flujo para el comando MIREGISTRO
+            if text.upper() == 'MIREGISTRO':
+                print(f"--- [MIREGISTRO] ID de Telegram de {user_name}: {user_id} ---")
+                send_telegram_message(chat_id, f"Hola {user_name}, tu ID de Telegram ha sido registrado. Lo puedes encontrar en los logs del sistema.")
+            
+            # Nuevo flujo para el comando SOS
+            elif text.upper() == 'SOS':
+                comunidad_nombre = get_community_by_chat_id(chat_id)
+                if comunidad_nombre:
+                    webapp_url = f"https://alarma-production.up.railway.app/?comunidad={comunidad_nombre}&id={user_id}&first_name={user_name}"
+                    payload = {
+                        "chat_id": chat_id,
+                        "text": f"🚨 {user_name} ha activado una emergencia. Presiona el botón para enviar una alerta roja.",
+                        "reply_markup": {
+                            "inline_keyboard": [
+                                [
+                                    {
+                                        "text": "🚨 Enviar Alerta Roja",
+                                        "web_app": { "url": webapp_url }
+                                    }
+                                ]
                             ]
-                        ]
+                        }
                     }
-                }
-                send_telegram_message(chat_id, payload)
+                    send_telegram_message(chat_id, payload)
+                else:
+                    print(f"--- ADVERTENCIA: No se encontró la comunidad para el chat_id: {chat_id} ---")
+                    send_telegram_message(chat_id, "Lo siento, no pude encontrar la comunidad asociada a este grupo.")
+            
     except Exception as e:
         print(f"--- ERROR GENERAL en el webhook: {e} ---")
     
@@ -203,6 +232,7 @@ def register_id():
         data = request.json
         telegram_id = data.get('telegram_id')
         if telegram_id:
+            # Aquí puedes añadir lógica para guardar el ID si lo necesitas
             return jsonify({"status": "ID recibido y registrado."}), 200
         else:
             return jsonify({"error": "ID no proporcionado"}), 400
