@@ -79,7 +79,7 @@ def get_comunidad_data(comunidad):
         return jsonify(comunidad_info)
     return jsonify({}), 404
 
-# --- NUEVO ENDPOINT PARA OBTENER LA COMUNIDAD POR CHAT_ID ---
+# --- NUEVO ENDPOINT PARA OBTENER LA COMUNIDAD POR CHAT_ID (para el frontend) ---
 @app.route('/api/comunidad_por_chat/<chat_id>', methods=['GET'])
 def get_comunidad_by_chat_id_api(chat_id):
     print(f"--- Solicitud API recibida para chat_id: {chat_id} ---")
@@ -93,7 +93,7 @@ def get_comunidad_by_chat_id_api(chat_id):
     if not comunidad_info:
         return jsonify({"error": "Datos de comunidad no encontrados"}), 404
 
-    # Añade el nombre de la comunidad a la respuesta JSON para que el frontend lo use
+    # Añade el nombre de la comunidad a la respuesta JSON
     comunidad_info['comunidad'] = comunidad_nombre
     
     print(f"--- Datos de la comunidad '{comunidad_nombre}' enviados. ---")
@@ -232,9 +232,9 @@ def webhook():
                 print(f"--- [DEBUG] Comunidad encontrada: {comunidad_nombre} ---")
 
                 if comunidad_nombre:
-                    # La URL del web_app es solo la URL base
-                    # ¡IMPORTANTE!: Debe ser una URL completa, incluyendo https://
-                    url_base_webapp = 'https://alertaperu-production.up.railway.app'
+                    # La URL del web_app ahora es solo la URL base con la barra final.
+                    # ¡IMPORTANTE!: Asegúrate de que esta URL sea la misma que configuraste en BotFather.
+                    url_base_webapp = 'https://alertaperu-production.up.railway.app/'
                     
                     url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage"
                     payload = {
