@@ -6,7 +6,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // Variables globales para almacenar los datos del usuario, chat y comunidad.
     let userData = null;
     let chatId = null;
-    let comunidadSeleccionada = null;
+    let comunidadSeleccionada = null; // Esta variable se llenará dinámicamente
     let comunidadMiembros = [];
     let currentUserMemberData = null;
 
@@ -23,7 +23,7 @@ document.addEventListener('DOMContentLoaded', () => {
         
         // Obtenemos los datos del usuario y del chat desde la API de Telegram.
         userData = webAppData.user;
-        chatId = webAppData.chat?.id;
+        chatId = webAppData.chat?.id; // Usamos el operador ?. para evitar errores si 'chat' es nulo
 
         if (!chatId) {
             console.error("❌ No se encontró el chat_id en los datos de la Web App.");
@@ -37,6 +37,7 @@ document.addEventListener('DOMContentLoaded', () => {
         console.log("✅ Chat ID detectado:", chatId);
         
         // Intentamos cargar los datos de la comunidad usando el chat_id.
+        // Esto llamará al nuevo endpoint /api/comunidad_por_chat/<chat_id>
         cargarDatosComunidad(chatId);
 
         // Actualizamos el mensaje de estado inicial en la interfaz.
@@ -57,11 +58,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
     async function cargarDatosComunidad(chatId) {
         try {
+            // Llama al nuevo endpoint en tu servidor para obtener la comunidad por chat_id
             const res = await fetch(`${BACKEND_URL}/api/comunidad_por_chat/${chatId}`);
             if (!res.ok) throw new Error(`Error al cargar datos de la comunidad: ${res.status}`);
             
             const comunidadData = await res.json();
-            comunidadSeleccionada = comunidadData.comunidad;
+            comunidadSeleccionada = comunidadData.comunidad; // El servidor devuelve el nombre de la comunidad
             comunidadMiembros = comunidadData.miembros || [];
             
             console.log("✅ Datos de la comunidad cargados:", comunidadData);
@@ -83,6 +85,11 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
         updateStatusMessageBasedOnToggle();
+        // Habilitar el botón si todo se cargó correctamente y el texto es válido
+        const texto = textarea.value.trim();
+        const isValid = texto.length >= 4 && texto.length <= 300 && comunidadSeleccionada;
+        boton.disabled = !isValid;
+        boton.classList.toggle('enabled', isValid);
     }
 
     // --- MANEJO DE LA INTERFAZ DE USUARIO Y EVENTOS ---
@@ -99,6 +106,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     textarea.addEventListener('input', () => {
         const texto = textarea.value.trim();
+        // La validación ahora también incluye que la comunidad haya sido cargada
         const isValid = texto.length >= 4 && texto.length <= 300 && comunidadSeleccionada;
         
         boton.disabled = !isValid;
@@ -185,6 +193,7 @@ document.addEventListener('DOMContentLoaded', () => {
         };
 
         console.log("📤 Datos de alerta a enviar:", {
+            tipo: "Alerta Roja Activada",
             descripcion,
             ubicacion: { lat, lon },
             direccion,
@@ -214,6 +223,10 @@ document.addEventListener('DOMContentLoaded', () => {
         .then(data => {
             console.log("✅ Respuesta del servidor (JSON):", data);
             alert(data.status || "✅ Alerta enviada correctamente.");
+            // También puedes cerrar la Web App automáticamente después de enviar la alerta
+            if (window.Telegram && window.Telegram.WebApp) {
+                 window.Telegram.WebApp.close();
+            }
             resetFormulario();
         })
         .catch(err => {
