@@ -192,16 +192,17 @@ def webhook():
             user_id = message['from']['id']
             user_name = message['from']['first_name']
 
-            # Nuevo flujo para el comando MIREGISTRO
             if text.upper() == 'MIREGISTRO':
                 print(f"--- [MIREGISTRO] ID de Telegram de {user_name}: {user_id} ---")
                 send_telegram_message(chat_id, f"Hola {user_name}, tu ID de Telegram ha sido registrado. Lo puedes encontrar en los logs del sistema.")
             
-            # Nuevo flujo para el comando SOS
             elif text.upper() == 'SOS':
                 comunidad_nombre = get_community_by_chat_id(chat_id)
                 if comunidad_nombre:
-                    webapp_url = f"https://alarma-production.up.railway.app/?comunidad={comunidad_nombre}&id={user_id}&first_name={user_name}"
+                    webapp_url = f"https://alertaperu-production.up.railway.app/?comunidad={comunidad_nombre}&id={user_id}&first_name={user_name}"
+                    
+                    # CORRECCIÓN: Usar la API de Telegram directamente para enviar el JSON
+                    url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage"
                     payload = {
                         "chat_id": chat_id,
                         "text": f"🚨 {user_name} ha activado una emergencia. Presiona el botón para enviar una alerta roja.",
@@ -216,7 +217,13 @@ def webhook():
                             ]
                         }
                     }
-                    send_telegram_message(chat_id, payload)
+                    try:
+                        response = requests.post(url, json=payload)
+                        response.raise_for_status()
+                        print(f"--- Mensaje de WebApp enviado exitosamente a {chat_id}. ---")
+                    except requests.exceptions.RequestException as e:
+                        print(f"--- ERROR al enviar mensaje de WebApp a {chat_id}: {e} ---")
+
                 else:
                     print(f"--- ADVERTENCIA: No se encontró la comunidad para el chat_id: {chat_id} ---")
                     send_telegram_message(chat_id, "Lo siento, no pude encontrar la comunidad asociada a este grupo.")
