@@ -210,19 +210,8 @@ def webhook():
                 if comunidad_nombre:
                     from urllib.parse import urlencode, quote_plus
                     
-                    params = {
-                        'comunidad': comunidad_nombre,
-                        'id': user_id,
-                        'first_name': user_name
-                    }
-                    
-                    # Codificar los parámetros de la URL
-                    query_string = urlencode(params, quote_via=quote_plus)
-                    
+                    # La URL del web_app ahora es solo la URL base
                     url_base_webapp = 'https://alertaperu-production.up.railway.app/'
-                    webapp_url = f"{url_base_webapp}?{query_string}"
-                    
-                    print(f"--- [DEBUG] URL de WebApp generada: {webapp_url} ---")
                     
                     url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage"
                     payload = {
@@ -233,7 +222,7 @@ def webhook():
                                 [
                                     {
                                         "text": "🚨 Enviar Alerta Roja",
-                                        "web_app": { "url": webapp_url }
+                                        "web_app": { "url": url_base_webapp }
                                     }
                                 ]
                             ]
