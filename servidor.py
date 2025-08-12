@@ -73,34 +73,58 @@ def static_files(filename):
 
 @app.route('/api/comunidad/<comunidad>', methods=['GET'])
 def get_comunidad_data(comunidad):
+    # Este endpoint aún se mantiene por si lo usas en otras partes.
     comunidad_info = load_community_json(comunidad)
     if comunidad_info:
         return jsonify(comunidad_info)
     return jsonify({}), 404
+
+# --- NUEVO ENDPOINT PARA OBTENER LA COMUNIDAD POR CHAT_ID ---
+@app.route('/api/comunidad_por_chat/<chat_id>', methods=['GET'])
+def get_comunidad_by_chat_id_api(chat_id):
+    print(f"--- Solicitud API recibida para chat_id: {chat_id} ---")
+    
+    comunidad_nombre = get_community_by_chat_id(chat_id)
+    if not comunidad_nombre:
+        print(f"--- ADVERTENCIA: No se encontró la comunidad para el chat_id: {chat_id} ---")
+        return jsonify({"error": "Comunidad no encontrada"}), 404
+
+    comunidad_info = load_community_json(comunidad_nombre)
+    if not comunidad_info:
+        return jsonify({"error": "Datos de comunidad no encontrados"}), 404
+
+    # Añade el nombre de la comunidad a la respuesta JSON para que el frontend lo use
+    comunidad_info['comunidad'] = comunidad_nombre
+    
+    print(f"--- Datos de la comunidad '{comunidad_nombre}' enviados. ---")
+    return jsonify(comunidad_info)
+
 
 @app.route('/api/alert', methods=['POST'])
 def handle_alert():
     print("--- Alerta recibida (POST). ---")
     data = request.json
     
-    comunidad_nombre = data.get('comunidad')
+    # 🚨 CORRECCIÓN CLAVE: Ahora el script.js envía 'chat_id' en lugar de 'comunidad'
+    chat_id = data.get('chat_id')
     user_telegram = data.get('user_telegram', {})
     user_name = user_telegram.get('first_name', 'Anónimo')
     
-    print(f"--- Alerta activada por: {user_name} en la comunidad: {comunidad_nombre} ---")
-
+    if not chat_id:
+        return jsonify({"error": "ID del chat no proporcionado"}), 400
+    
+    # Busca el nombre de la comunidad usando el chat_id
+    comunidad_nombre = get_community_by_chat_id(chat_id)
     if not comunidad_nombre:
-        return jsonify({"error": "Nombre de comunidad no proporcionado"}), 400
+        return jsonify({"error": f"Comunidad no encontrada para el chat_id '{chat_id}'"}), 404
+    
+    print(f"--- Alerta activada por: {user_name} en la comunidad: {comunidad_nombre} ---")
 
     comunidad_info = load_community_json(comunidad_nombre)
     if not comunidad_info:
         return jsonify({"error": f"Comunidad '{comunidad_nombre}' no encontrada"}), 404
 
-    chat_id = comunidad_info.get('chat_id')
     miembros = comunidad_info.get('miembros', [])
-
-    if not chat_id:
-        return jsonify({"error": "ID del chat de Telegram no configurado para esta comunidad"}), 500
 
     lat = data.get('ubicacion', {}).get('lat')
     lon = data.get('ubicacion', {}).get('lon')
@@ -208,9 +232,8 @@ def webhook():
                 print(f"--- [DEBUG] Comunidad encontrada: {comunidad_nombre} ---")
 
                 if comunidad_nombre:
-                    from urllib.parse import urlencode, quote_plus
-                    
-                    # La URL del web_app ahora es solo la URL base
+                    # La URL del web_app es solo la URL base
+                    # ¡IMPORTANTE!: Debe ser una URL completa, incluyendo https://
                     url_base_webapp = 'https://alertaperu-production.up.railway.app'
                     
                     url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage"
