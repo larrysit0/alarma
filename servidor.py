@@ -208,16 +208,10 @@ def webhook():
                 print(f"--- [DEBUG] Comunidad encontrada: {comunidad_nombre} ---")
 
                 if comunidad_nombre:
-                    from urllib.parse import quote_plus
-                    
-                    # Codificar los parámetros de la URL
-                    comunidad_codificada = quote_plus(comunidad_nombre)
-                    user_name_codificado = quote_plus(user_name)
+                    # Se utiliza la URL base configurada en BotFather
+                    url_base_webapp = 'https://alertaperu-production.up.railway.app/'
+                    url_completa = f"{url_base_webapp}?comunidad={comunidad_nombre}&id={user_id}&first_name={user_name}"
 
-                    webapp_url = f"https://alertaperu-production.up.railway.app/?comunidad={comunidad_codificada}&id={user_id}&first_name={user_name_codificado}"
-                    
-                    print(f"--- [DEBUG] URL de WebApp generada: {webapp_url} ---")
-                    
                     url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage"
                     payload = {
                         "chat_id": chat_id,
@@ -227,7 +221,7 @@ def webhook():
                                 [
                                     {
                                         "text": "🚨 Enviar Alerta Roja",
-                                        "web_app": { "url": webapp_url }
+                                        "web_app": { "url": url_completa }
                                     }
                                 ]
                             ]
