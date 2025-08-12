@@ -43,7 +43,6 @@ def load_community_json(comunidad_nombre):
 
 def get_community_by_chat_id(chat_id):
     try:
-        # Convierte el chat_id de Telegram a un string para la comparación
         chat_id_str = str(chat_id)
 
         for filename in os.listdir(COMUNIDADES_DIR):
@@ -52,10 +51,8 @@ def get_community_by_chat_id(chat_id):
                 with open(filepath, 'r', encoding='utf-8') as f:
                     comunidad_info = json.load(f)
                     
-                    # Aseguramos que el chat_id del JSON sea también un string
                     json_chat_id_str = str(comunidad_info.get('chat_id'))
                     
-                    # Compara los chat_id como strings para evitar problemas de tipo
                     if json_chat_id_str == chat_id_str:
                         return filename.replace('.json', '')
     except Exception as e:
@@ -199,13 +196,17 @@ def webhook():
             user_id = message['from']['id']
             user_name = message['from']['first_name']
 
+            print(f"--- [DEBUG] Comando recibido: {text} ---")
+            print(f"--- [DEBUG] chat_id del mensaje: {chat_id} ---")
+
             if text.upper() == 'MIREGISTRO':
                 print(f"--- [MIREGISTRO] ID de Telegram de {user_name}: {user_id} ---")
                 send_telegram_message(chat_id, f"Hola {user_name}, tu ID de Telegram ha sido registrado. Lo puedes encontrar en los logs del sistema.")
             
             elif text.upper() == 'SOS':
                 comunidad_nombre = get_community_by_chat_id(chat_id)
-                
+                print(f"--- [DEBUG] Comunidad encontrada: {comunidad_nombre} ---")
+
                 if comunidad_nombre:
                     webapp_url = f"https://alertaperu-production.up.railway.app/?comunidad={comunidad_nombre}&id={user_id}&first_name={user_name}"
                     
