@@ -41,15 +41,19 @@ def load_community_json(comunidad_nombre):
         print(f"--- ERROR al cargar '{filepath}': {e} ---")
         return None
 
-# NUEVA FUNCIÓN: Busca el nombre de la comunidad por su chat_id
 def get_community_by_chat_id(chat_id):
     try:
+        chat_id_str = str(chat_id)
+
         for filename in os.listdir(COMUNIDADES_DIR):
             if filename.endswith('.json'):
                 filepath = os.path.join(COMUNIDADES_DIR, filename)
                 with open(filepath, 'r', encoding='utf-8') as f:
                     comunidad_info = json.load(f)
-                    if str(comunidad_info.get('chat_id')) == str(chat_id):
+                    
+                    json_chat_id_str = str(comunidad_info.get('chat_id'))
+                    
+                    if json_chat_id_str == chat_id_str:
                         return filename.replace('.json', '')
     except Exception as e:
         print(f"--- ERROR al buscar comunidad por chat_id: {e} ---")
@@ -198,10 +202,10 @@ def webhook():
             
             elif text.upper() == 'SOS':
                 comunidad_nombre = get_community_by_chat_id(chat_id)
+                
                 if comunidad_nombre:
                     webapp_url = f"https://alertaperu-production.up.railway.app/?comunidad={comunidad_nombre}&id={user_id}&first_name={user_name}"
                     
-                    # CORRECCIÓN: Usar la API de Telegram directamente para enviar el JSON
                     url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage"
                     payload = {
                         "chat_id": chat_id,
@@ -223,10 +227,9 @@ def webhook():
                         print(f"--- Mensaje de WebApp enviado exitosamente a {chat_id}. ---")
                     except requests.exceptions.RequestException as e:
                         print(f"--- ERROR al enviar mensaje de WebApp a {chat_id}: {e} ---")
-
                 else:
                     print(f"--- ADVERTENCIA: No se encontró la comunidad para el chat_id: {chat_id} ---")
-                    send_telegram_message(chat_id, "Lo siento, no pude encontrar la comunidad asociada a este grupo.")
+                    send_telegram_message(chat_id, "Lo siento, no pude encontrar la comunidad asociada a este grupo. Por favor, asegúrate de que el bot está configurado para este chat.")
             
     except Exception as e:
         print(f"--- ERROR GENERAL en el webhook: {e} ---")
@@ -239,13 +242,11 @@ def register_id():
         data = request.json
         telegram_id = data.get('telegram_id')
         if telegram_id:
-            # Aquí puedes añadir lógica para guardar el ID si lo necesitas
             return jsonify({"status": "ID recibido y registrado."}), 200
         else:
             return jsonify({"error": "ID no proporcionado"}), 400
     except Exception as e:
         return jsonify({"error": "Error interno del servidor"}), 500
-
 
 if __name__ == '__main__':
     port = int(os.environ.get("PORT", 5000))
