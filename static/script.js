@@ -1,62 +1,71 @@
 document.addEventListener('DOMContentLoaded', () => {
+    // URL base de tu backend. Asegúrate de que esta URL sea correcta.
     const BACKEND_URL = "https://alarma-production.up.railway.app";
-
     console.log("✅ Script cargado. Backend URL:", BACKEND_URL);
 
-    const urlParams = new URLSearchParams(window.location.search);
-    const comunidadSeleccionada = urlParams.get('comunidad');
-
-    if (!comunidadSeleccionada) {
-        alert("❌ No se especificó la comunidad en la URL.");
-        return;
-    }
-    console.log("✅ Comunidad seleccionada:", comunidadSeleccionada);
-
+    // Variables globales para almacenar los datos del usuario, chat y comunidad.
     let userData = null;
+    let chatId = null;
+    let comunidadSeleccionada = null;
     let comunidadMiembros = [];
     let currentUserMemberData = null;
 
+    // Elementos del DOM (Interfaz de Usuario)
     const textarea = document.getElementById('descripcion');
     const boton = document.getElementById('btnEmergencia');
     const statusMsg = document.getElementById('statusMsg');
     const toggleRealTime = document.getElementById('toggleRealTime');
 
-    const userIdFromUrl = urlParams.get('id');
-    const userFirstNameFromUrl = urlParams.get('first_name');
+    // --- LÓGICA PRINCIPAL: OBTENER DATOS DE LA WEB APP ---
+    // Verificamos si la aplicación se está ejecutando dentro de Telegram.
+    if (window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.initDataUnsafe) {
+        const webAppData = window.Telegram.WebApp.initDataUnsafe;
+        
+        // Obtenemos los datos del usuario y del chat desde la API de Telegram.
+        userData = webAppData.user;
+        chatId = webAppData.chat?.id;
 
-    if (userIdFromUrl) {
-        userData = {
-            id: userIdFromUrl,
-            first_name: userFirstNameFromUrl,
-            last_name: urlParams.get('last_name') || '',
-            username: urlParams.get('username') || ''
-        };
-        console.log("✅ Datos del usuario obtenidos de la URL:", userData);
-        statusMsg.textContent = `👋 Hola ${userData.first_name} en ${comunidadSeleccionada.toUpperCase()}`;
-    } else if (window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.initDataUnsafe) {
-        userData = window.Telegram.WebApp.initDataUnsafe.user;
-        console.log("✅ Datos del usuario de Telegram cargados:", userData);
+        if (!chatId) {
+            console.error("❌ No se encontró el chat_id en los datos de la Web App.");
+            alert("❌ Error: No se pudo determinar el chat. Por favor, contacta a un administrador.");
+            boton.disabled = true;
+            boton.textContent = "❌ Error";
+            return;
+        }
+
+        console.log("✅ Datos de usuario de Telegram cargados:", userData);
+        console.log("✅ Chat ID detectado:", chatId);
+        
+        // Intentamos cargar los datos de la comunidad usando el chat_id.
+        cargarDatosComunidad(chatId);
+
+        // Actualizamos el mensaje de estado inicial en la interfaz.
         if (userData && userData.first_name) {
-            statusMsg.textContent = `👋 Hola ${userData.first_name} en ${comunidadSeleccionada.toUpperCase()}`;
+            statusMsg.textContent = `👋 Hola ${userData.first_name}, presiona para enviar una alerta.`;
         } else {
-            statusMsg.textContent = `👥 Comunidad detectada: ${comunidadSeleccionada.toUpperCase()}`;
+            statusMsg.textContent = "👥 Grupo detectado.";
         }
     } else {
-        console.warn("⚠️ No se pudieron obtener los datos del usuario.");
-        statusMsg.textContent = `👥 Comunidad detectada: ${comunidadSeleccionada.toUpperCase()}`;
+        console.error("❌ La Web App no se ha cargado en Telegram o no hay datos.");
+        alert("❌ Este botón solo funciona dentro de Telegram.");
+        boton.disabled = true;
+        boton.textContent = "❌ Error (Fuera de Telegram)";
+        return;
     }
 
-    cargarDatosComunidad(comunidadSeleccionada);
+    // --- FUNCIONES ASÍNCRONAS ---
 
-    async function cargarDatosComunidad(comunidad) {
+    async function cargarDatosComunidad(chatId) {
         try {
-            const res = await fetch(`${BACKEND_URL}/api/comunidad/${comunidad}`);
+            const res = await fetch(`${BACKEND_URL}/api/comunidad_por_chat/${chatId}`);
             if (!res.ok) throw new Error(`Error al cargar datos de la comunidad: ${res.status}`);
-            const comunidadData = await res.json();
             
+            const comunidadData = await res.json();
+            comunidadSeleccionada = comunidadData.comunidad;
             comunidadMiembros = comunidadData.miembros || [];
-            console.log("✅ Miembros de la comunidad cargados:", comunidadMiembros);
-
+            
+            console.log("✅ Datos de la comunidad cargados:", comunidadData);
+            
             if (userData && userData.id) {
                 currentUserMemberData = comunidadMiembros.find(m => String(m.telegram_id) === String(userData.id));
                 if (currentUserMemberData) {
@@ -69,11 +78,14 @@ document.addEventListener('DOMContentLoaded', () => {
             console.error("❌ Error en cargarDatosComunidad:", error.message);
             statusMsg.textContent = "❌ No se pudieron cargar los datos de la comunidad.";
             boton.disabled = true;
+            boton.textContent = "❌ Error";
             boton.classList.remove('enabled');
             return;
         }
         updateStatusMessageBasedOnToggle();
     }
+
+    // --- MANEJO DE LA INTERFAZ DE USUARIO Y EVENTOS ---
 
     function updateStatusMessageBasedOnToggle() {
         if (toggleRealTime.checked) {
@@ -87,15 +99,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
     textarea.addEventListener('input', () => {
         const texto = textarea.value.trim();
-        if (texto.length >= 4 && texto.length <= 300) {
-            boton.disabled = false;
-            boton.classList.add('enabled');
-            statusMsg.textContent = "✅ Listo para enviar";
-            updateStatusMessageBasedOnToggle();
-        } else {
-            boton.disabled = true;
-            boton.classList.remove('enabled');
-            statusMsg.textContent = "⏳ Esperando acción del usuario...";
+        const isValid = texto.length >= 4 && texto.length <= 300 && comunidadSeleccionada;
+        
+        boton.disabled = !isValid;
+        boton.classList.toggle('enabled', isValid);
+        statusMsg.textContent = isValid ? "✅ Listo para enviar" : "⏳ Esperando acción del usuario...";
+        if (isValid) {
             updateStatusMessageBasedOnToggle();
         }
     });
@@ -109,14 +118,11 @@ document.addEventListener('DOMContentLoaded', () => {
         const descripcion = textarea.value.trim();
 
         if (!descripcion || !comunidadSeleccionada) {
-            console.error("❌ Validación fallida: faltan datos necesarios (descripción o comunidad).");
+            console.error("❌ Validación fallida: faltan datos necesarios.");
             alert("❌ Faltan datos necesarios");
             return;
         }
         
-        // CORREGIDO: SE ELIMINÓ LA VALIDACIÓN DE currentUserMemberData
-        // Ahora se intenta obtener la ubicación de cualquier forma, sin importar si el usuario está en el JSON.
-
         boton.disabled = true;
         boton.textContent = "Enviando...";
         statusMsg.textContent = "🔄 Enviando alerta...";
@@ -134,10 +140,10 @@ document.addEventListener('DOMContentLoaded', () => {
             navigator.geolocation.getCurrentPosition(pos => {
                 latEnvio = pos.coords.latitude;
                 lonEnvio = pos.coords.longitude;
-                console.log("✅ Ubicación obtenida (tiempo real). Llamando a enviarAlerta.");
+                console.log("✅ Ubicación obtenida (tiempo real).");
                 enviarAlerta(descripcion, latEnvio, lonEnvio, direccionEnvio, userData);
             }, () => {
-                console.error("❌ Error al obtener ubicación en tiempo real. Cayendo a ubicación registrada si existe.");
+                console.error("❌ Error al obtener ubicación en tiempo real. Usando ubicación registrada si existe.");
                 alert("❌ No se pudo obtener ubicación en tiempo real. Usando tu ubicación registrada.");
                 handleFallbackLocation(descripcion, userData, direccionEnvio);
             });
@@ -158,8 +164,7 @@ document.addEventListener('DOMContentLoaded', () => {
             console.log("➡️ Fallback: Usando ubicación registrada del miembro.");
             enviarAlerta(descripcion, latEnvio, lonEnvio, direccionEnvio, userData);
         } else {
-            console.error("❌ Fallback: No se encontró ubicación válida (ni registrada ni en tiempo real).");
-            // Se envía la alarma con la ubicación disponible, incluso si es nula
+            console.error("❌ Fallback: No se encontró ubicación válida.");
             enviarAlerta(descripcion, latEnvio, lonEnvio, direccionEnvio, userData);
         }
     }
@@ -179,8 +184,13 @@ document.addEventListener('DOMContentLoaded', () => {
             username: ''
         };
 
-        console.log("📤 Datos de usuario a enviar:", userTelegramData);
-        console.log("📤 Datos de ubicación a enviar:", { lat, lon, direccion });
+        console.log("📤 Datos de alerta a enviar:", {
+            descripcion,
+            ubicacion: { lat, lon },
+            direccion,
+            chat_id: chatId, // Se envía el chat_id
+            user_telegram: userTelegramData
+        });
 
         fetch(`${BACKEND_URL}/api/alert`, {
             method: 'POST',
@@ -190,27 +200,27 @@ document.addEventListener('DOMContentLoaded', () => {
                 descripcion,
                 ubicacion: { lat, lon },
                 direccion: direccion,
-                comunidad: comunidadSeleccionada,
+                chat_id: chatId, // ¡Corrección: Ahora enviamos el chat_id!
                 user_telegram: userTelegramData
             })
         })
-            .then(res => {
-                console.log("✅ Respuesta del servidor recibida (Headers):", res.status);
-                if (!res.ok) {
-                    throw new Error(`Error del servidor: ${res.status} ${res.statusText}`);
-                }
-                return res.json();
-            })
-            .then(data => {
-                console.log("✅ Respuesta del servidor (JSON):", data);
-                alert(data.status || "✅ Alerta enviada correctamente.");
-                resetFormulario();
-            })
-            .catch(err => {
-                console.error("❌ Error en la llamada fetch:", err);
-                alert("❌ Error al enviar alerta. Consulta la consola para más detalles.");
-                resetFormulario();
-            });
+        .then(res => {
+            console.log("✅ Respuesta del servidor recibida:", res.status);
+            if (!res.ok) {
+                throw new Error(`Error del servidor: ${res.status} ${res.statusText}`);
+            }
+            return res.json();
+        })
+        .then(data => {
+            console.log("✅ Respuesta del servidor (JSON):", data);
+            alert(data.status || "✅ Alerta enviada correctamente.");
+            resetFormulario();
+        })
+        .catch(err => {
+            console.error("❌ Error en la llamada fetch:", err);
+            alert("❌ Error al enviar alerta. Consulta la consola para más detalles.");
+            resetFormulario();
+        });
     }
 
     function resetFormulario() {
