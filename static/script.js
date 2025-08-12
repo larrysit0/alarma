@@ -1,5 +1,6 @@
 document.addEventListener('DOMContentLoaded', () => {
-    // URL base de tu backend. Asegúrate de que esta URL sea correcta.
+    // URL base de tu backend. ¡Asegúrate de que esta URL sea la CORRECTA!
+    // Esta debe coincidir con la URL de tu proyecto desplegado en Railway.
     const BACKEND_URL = "https://alertaperu-production.up.railway.app";
     console.log("✅ Script cargado. Backend URL:", BACKEND_URL);
 
