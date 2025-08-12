@@ -1,6 +1,6 @@
 document.addEventListener('DOMContentLoaded', () => {
     // URL base de tu backend. Asegúrate de que esta URL sea correcta.
-    const BACKEND_URL = "https://alarma-production.up.railway.app";
+    const BACKEND_URL = "https://alertaperu-production.up.railway.app";
     console.log("✅ Script cargado. Backend URL:", BACKEND_URL);
 
     // Variables globales para almacenar los datos del usuario, chat y comunidad.
