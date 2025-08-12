@@ -211,7 +211,7 @@ def webhook():
                     from urllib.parse import urlencode, quote_plus
                     
                     # La URL del web_app ahora es solo la URL base
-                    url_base_webapp = 'https://alertaperu-production.up.railway.app/'
+                    url_base_webapp = 'alertaperu-production.up.railway.app'
                     
                     url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage"
                     payload = {
