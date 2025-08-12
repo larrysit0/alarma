@@ -12,6 +12,7 @@ app = Flask(__name__, static_folder='static', template_folder='templates')
 CORS(app)
 
 # 🔐 TOKEN del bot y credenciales de Twilio (variables de entorno)
+# ¡IMPORTANTE!: Asegúrate de que esta variable de entorno esté actualizada en Railway con el token de tu NUEVO bot.
 TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
 TWILIO_ACCOUNT_SID = os.getenv("TWILIO_ACCOUNT_SID")
 TWILIO_AUTH_TOKEN = os.getenv("TWILIO_AUTH_TOKEN")
@@ -73,7 +74,7 @@ def static_files(filename):
 
 @app.route('/api/comunidad/<comunidad>', methods=['GET'])
 def get_comunidad_data(comunidad):
-    # Este endpoint aún se mantiene por si lo usas en otras partes.
+    # Este endpoint se mantiene por si lo usas en otras partes.
     comunidad_info = load_community_json(comunidad)
     if comunidad_info:
         return jsonify(comunidad_info)
@@ -105,7 +106,7 @@ def handle_alert():
     print("--- Alerta recibida (POST). ---")
     data = request.json
     
-    # 🚨 CORRECCIÓN CLAVE: Ahora el script.js envía 'chat_id' en lugar de 'comunidad'
+    # El script.js ahora envía 'chat_id' en lugar de 'comunidad'
     chat_id = data.get('chat_id')
     user_telegram = data.get('user_telegram', {})
     user_name = user_telegram.get('first_name', 'Anónimo')
