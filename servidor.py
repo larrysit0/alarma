@@ -216,7 +216,7 @@ def webhook():
                         'first_name': user_name
                     }
                     
-                    # Codificar todos los parámetros de la URL
+                    # Codificar los parámetros de la URL
                     query_string = urlencode(params, quote_via=quote_plus)
                     
                     url_base_webapp = 'https://alertaperu-production.up.railway.app/'
