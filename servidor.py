@@ -43,6 +43,7 @@ def load_community_json(comunidad_nombre):
 
 def get_community_by_chat_id(chat_id):
     try:
+        # Convierte el chat_id de Telegram a un string para la comparación
         chat_id_str = str(chat_id)
 
         for filename in os.listdir(COMUNIDADES_DIR):
@@ -51,8 +52,10 @@ def get_community_by_chat_id(chat_id):
                 with open(filepath, 'r', encoding='utf-8') as f:
                     comunidad_info = json.load(f)
                     
+                    # Aseguramos que el chat_id del JSON sea también un string
                     json_chat_id_str = str(comunidad_info.get('chat_id'))
                     
+                    # Compara los chat_id como strings para evitar problemas de tipo
                     if json_chat_id_str == chat_id_str:
                         return filename.replace('.json', '')
     except Exception as e:
